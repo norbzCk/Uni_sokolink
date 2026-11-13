@@ -1,0 +1,1 @@
+{"name":"platform","projectType":"library","sourceRoot":"libs/platform/src","tags":["scope:shared","type:platform"],"targets":{"build":{"command":"npm run build --workspace=@sokolink/platform","outputs":["{projectRoot}/dist"]}}}

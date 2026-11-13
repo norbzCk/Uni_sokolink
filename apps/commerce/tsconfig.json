@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.base.json","compilerOptions":{"module":"commonjs","moduleResolution":"node","experimentalDecorators":true,"emitDecoratorMetadata":true,"baseUrl":"../..","paths":{"@sokolink/platform":["libs/platform/dist/index.d.ts"],"@sokolink/contracts":["libs/contracts/dist/index.d.ts"]}},"include":["src/**/*.ts"]}

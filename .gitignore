@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.nx/
+.env
+.env.*
+!.env.example
+coverage/
+*.log
+project-graph.json
+.DS_Store

@@ -1,0 +1,3 @@
+const API_BASE_URL=import.meta.env.VITE_API_BASE_URL??'http://localhost:3000/api/v1';
+export class ApiError extends Error {constructor(public readonly status:number,message:string,public readonly correlationId?:string){super(message);this.name='ApiError';}}
+export async function apiRequest<T>(path:string,init?:RequestInit):Promise<T>{const response=await fetch(new URL(path.replace(/^\//,''),API_BASE_URL.endsWith('/')?API_BASE_URL:API_BASE_URL+'/'),{...init,headers:{Accept:'application/json',...init?.headers}});if(!response.ok){const body=await response.json().catch(()=>({message:'Request failed'})) as {message?:string;correlationId?:string};throw new ApiError(response.status,body.message??'Request failed',body.correlationId);}return response.json() as Promise<T>;}

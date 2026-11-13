@@ -1,0 +1,16 @@
+{
+  "name": "@sokolink/catalogue",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start:dev": "tsx watch src/main.ts",
+    "start:prod": "node dist/main.js",
+    "test": "vitest run",
+    "lint": "eslint src --max-warnings=0"
+  },
+  "dependencies": {
+    "@sokolink/platform": "0.1.0",
+    "@sokolink/contracts": "0.1.0"
+  }
+}

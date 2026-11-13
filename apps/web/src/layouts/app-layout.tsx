@@ -1,0 +1,2 @@
+import {Link,Outlet} from 'react-router-dom';
+export function AppLayout(){return <div className="app-shell"><header className="topbar"><Link className="brand" to="/" aria-label="SokoLink home"><span className="brand-mark">S</span><span>SokoLink</span></Link><nav aria-label="Main navigation"><Link to="/">Explore</Link><Link to="/seller">For sellers</Link></nav><Link className="button button-outline" to="/sign-in">Sign in</Link></header><main><Outlet/></main><footer><span>Built for student enterprise.</span><span>Dar es Salaam, Tanzania</span></footer></div>}

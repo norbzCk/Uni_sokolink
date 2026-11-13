@@ -1,0 +1,153 @@
+name: sokolink
+
+x-service-common: &service-common
+  restart: unless-stopped
+  environment: &service-environment
+    NODE_ENV: development
+    AMQP_URL: amqp://${RABBITMQ_USER:?Set RABBITMQ_USER in .env}:${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}@rabbitmq:5672
+    CORS_ORIGINS: http://localhost:${WEB_PORT:-5173}
+    LOG_LEVEL: info
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: postgres
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD in .env}
+      SELLER_DB_PASSWORD: ${SELLER_DB_PASSWORD:?Set SELLER_DB_PASSWORD in .env}
+      CATALOGUE_DB_PASSWORD: ${CATALOGUE_DB_PASSWORD:?Set CATALOGUE_DB_PASSWORD in .env}
+      INVENTORY_DB_PASSWORD: ${INVENTORY_DB_PASSWORD:?Set INVENTORY_DB_PASSWORD in .env}
+      COMMERCE_DB_PASSWORD: ${COMMERCE_DB_PASSWORD:?Set COMMERCE_DB_PASSWORD in .env}
+      PAYMENT_DB_PASSWORD: ${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}
+      FULFILMENT_DB_PASSWORD: ${FULFILMENT_DB_PASSWORD:?Set FULFILMENT_DB_PASSWORD in .env}
+      NOTIFICATIONS_DB_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD:?Set NOTIFICATIONS_DB_PASSWORD in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/10-init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:4.2-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  api-gateway:
+    <<: *service-common
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: infra/docker/service.Dockerfile
+      args:
+        APP_NAME: api-gateway
+    environment:
+      <<: *service-environment
+      SERVICE_NAME: api-gateway
+      SERVICE_PORT: 3000
+      PORT: 3000
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 25s
+
+  identity:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: identity}}
+    environment: {<<: *service-environment, SERVICE_NAME: identity, PORT: 3101, DATABASE_URL: "postgresql://identity_owner:${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD in .env}@postgres:5432/identity_db?schema=public"}
+    ports: ["3101:3101"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3101/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+  seller:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: seller}}
+    environment: {<<: *service-environment, SERVICE_NAME: seller, PORT: 3102, DATABASE_URL: "postgresql://seller_owner:${SELLER_DB_PASSWORD:?Set SELLER_DB_PASSWORD in .env}@postgres:5432/seller_db?schema=public"}
+    ports: ["3102:3102"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3102/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+  catalogue:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: catalogue}}
+    environment: {<<: *service-environment, SERVICE_NAME: catalogue, PORT: 3103, DATABASE_URL: "postgresql://catalogue_owner:${CATALOGUE_DB_PASSWORD:?Set CATALOGUE_DB_PASSWORD in .env}@postgres:5432/catalogue_db?schema=public"}
+    ports: ["3103:3103"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3103/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+  inventory:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: inventory}}
+    environment: {<<: *service-environment, SERVICE_NAME: inventory, PORT: 3104, DATABASE_URL: "postgresql://inventory_owner:${INVENTORY_DB_PASSWORD:?Set INVENTORY_DB_PASSWORD in .env}@postgres:5432/inventory_db?schema=public"}
+    ports: ["3104:3104"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3104/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+  commerce:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: commerce}}
+    environment: {<<: *service-environment, SERVICE_NAME: commerce, PORT: 3105, DATABASE_URL: "postgresql://commerce_owner:${COMMERCE_DB_PASSWORD:?Set COMMERCE_DB_PASSWORD in .env}@postgres:5432/commerce_db?schema=public"}
+    ports: ["3105:3105"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3105/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+  payment:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: payment}}
+    environment: {<<: *service-environment, SERVICE_NAME: payment, PORT: 3106, DATABASE_URL: "postgresql://payment_owner:${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}@postgres:5432/payment_db?schema=public"}
+    ports: ["3106:3106"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3106/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+  fulfilment:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: fulfilment}}
+    environment: {<<: *service-environment, SERVICE_NAME: fulfilment, PORT: 3107, DATABASE_URL: "postgresql://fulfilment_owner:${FULFILMENT_DB_PASSWORD:?Set FULFILMENT_DB_PASSWORD in .env}@postgres:5432/fulfilment_db?schema=public"}
+    ports: ["3107:3107"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3107/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+  notifications:
+    <<: *service-common
+    build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: notifications}}
+    environment: {<<: *service-environment, SERVICE_NAME: notifications, PORT: 3108, DATABASE_URL: "postgresql://notifications_owner:${NOTIFICATIONS_DB_PASSWORD:?Set NOTIFICATIONS_DB_PASSWORD in .env}@postgres:5432/notifications_db?schema=public"}
+    ports: ["3108:3108"]
+    healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3108/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:${GATEWAY_PORT:-3000}/api/v1
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
