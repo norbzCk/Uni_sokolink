@@ -14,7 +14,7 @@ const EnvironmentSchema = z.object({
 });
 
 export function loadEnvironment() {
-  if (!process.env.DATABASE_URL && serviceName !== 'api-gateway') {
+  if (!process.env.DATABASE_URL) {
     const password = process.env[serviceName.toUpperCase() + '_DB_PASSWORD'];
     if (password) {
       process.env.DATABASE_URL = 'postgresql://' + serviceName + '_owner:' + encodeURIComponent(password) + '@localhost:' + (process.env.POSTGRES_PORT ?? '5432') + '/' + serviceName + '_db?schema=public';

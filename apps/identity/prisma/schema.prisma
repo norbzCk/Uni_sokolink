@@ -7,4 +7,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Domain models are added by this service's implementation phase.
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum RoleName {
+  CUSTOMER
+  SELLER
+  DELIVERY_PARTNER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum VerificationChannel {
+  EMAIL
+  PHONE
+}
+
+enum VerificationPurpose {
+  REGISTRATION
+  PASSWORD_RESET
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  fullName         String     @db.VarChar(160)
+  email            String     @db.VarChar(254)
+  emailNormalized  String     @unique @db.VarChar(254)
+  phone            String     @db.VarChar(32)
+  phoneNormalized  String     @unique @db.VarChar(20)
+  passwordHash     String     @db.VarChar(255)
+  status           UserStatus @default(PENDING_VERIFICATION)
+  emailVerifiedAt  DateTime?  @db.Timestamptz(3)
+  phoneVerifiedAt  DateTime?  @db.Timestamptz(3)
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?  @db.Timestamptz(3)
+  lastLoginAt      DateTime?  @db.Timestamptz(3)
+  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
+
+  roles              UserRole[]
+  sessions           RefreshSession[]
+  verificationTokens VerificationToken[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  role      RoleName
+  grantedAt DateTime @default(now()) @db.Timestamptz(3)
+  grantedBy String?  @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role])
+}
+
+model RefreshSession {
+  id                  String    @id @default(uuid()) @db.Uuid
+  familyId            String    @db.Uuid
+  userId              String    @db.Uuid
+  tokenHash           String    @unique @db.Char(64)
+  replacedBySessionId String?   @db.Uuid
+  revokedAt           DateTime? @db.Timestamptz(3)
+  revocationReason    String?   @db.VarChar(60)
+  expiresAt           DateTime  @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt          DateTime? @db.Timestamptz(3)
+  ipAddress           String?   @db.VarChar(64)
+  userAgent           String?   @db.VarChar(300)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model VerificationToken {
+  id           String              @id @default(uuid()) @db.Uuid
+  userId       String              @db.Uuid
+  channel      VerificationChannel
+  purpose      VerificationPurpose
+  tokenHash    String              @unique @db.Char(64)
+  expiresAt    DateTime            @db.Timestamptz(3)
+  consumedAt   DateTime?           @db.Timestamptz(3)
+  attemptCount Int                 @default(0)
+  maxAttempts  Int                 @default(5)
+  requestIp    String?             @db.VarChar(64)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, channel, purpose, createdAt])
+  @@index([expiresAt])
+}
+
+model AuthAttempt {
+  id             String   @id @default(uuid()) @db.Uuid
+  identifierHash String   @db.Char(64)
+  ipAddress      String?  @db.VarChar(64)
+  successful     Boolean
+  reason         String   @db.VarChar(60)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([identifierHash, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  actorId       String?  @db.Uuid
+  action        String   @db.VarChar(80)
+  targetType    String?  @db.VarChar(40)
+  targetId      String?  @db.VarChar(64)
+  metadata      Json?
+  ipAddress     String?  @db.VarChar(64)
+  correlationId String?  @db.VarChar(128)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+
+model RateLimitEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  keyHash   String   @db.Char(64)
+  action    String   @db.VarChar(60)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([action, keyHash, createdAt])
+  @@index([createdAt])
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  type        String    @db.VarChar(120)
+  version     Int       @default(1)
+  payload     Json
+  occurredAt  DateTime  @default(now()) @db.Timestamptz(3)
+  publishedAt DateTime? @db.Timestamptz(3)
+  attempts    Int       @default(0)
+  lastError   String?   @db.Text
+
+  @@index([publishedAt, occurredAt])
+}

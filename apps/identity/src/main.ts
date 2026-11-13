@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { json } from 'express';
 import { createLogger, correlationMiddleware } from '@sokolink/platform';
 import { AppModule } from './app.module';
@@ -16,6 +17,7 @@ async function bootstrap(): Promise<void> {
 
   app.useLogger(new PinoNestLogger(logger));
   app.use(json({ limit: '1mb' }));
+  app.use(cookieParser());
   app.use(correlationMiddleware);
   app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
   app.setGlobalPrefix('api');

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@sokolink/platform": "0.1.0",
-    "@sokolink/contracts": "0.1.0"
+    "@sokolink/contracts": "0.1.0",
+    "http-proxy-middleware": "3.0.5"
   }
 }

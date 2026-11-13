@@ -19,19 +19,21 @@ The workspace uses npm workspaces managed by Nx. Nx owns project discovery, task
 | fulfilment | NestJS | 3107 | `fulfilment_db`, `fulfilment_owner` |
 | notifications | NestJS | 3108 | `notifications_db`, `notifications_owner` |
 
-Infrastructure ports: PostgreSQL 5432, RabbitMQ AMQP 5672, management UI 15672. Each backend exposes versioned liveness/readiness at `/api/v1/health` and `/api/v1/ready`; API docs are at `/api/docs`. The gateway currently provides the HTTP ingress/bootstrap, versioned health and OpenAPI scaffolding. Business route forwarding, authentication enforcement and rate limiting are not implemented yet.
+Infrastructure ports: PostgreSQL 5432, RabbitMQ AMQP 5672, management UI 15672. Each backend exposes versioned liveness/readiness at `/api/v1/health` and `/api/v1/ready`; API docs are at `/api/docs`. The gateway forwards `/api/v1/auth/*` to the identity service before body parsing so refresh cookies and request bodies pass through intact; proxy failures return a structured 502. Other business routes are not forwarded yet.
 
 ## Backend baseline
 
 Each Nest app validates environment variables with Zod, enables URI versioning and a global `/api` prefix, configures CORS, request correlation, Pino structured logging with sensitive-field redaction, safe exception responses, DTO validation/whitelisting, Swagger and shutdown hooks. Liveness does not call dependencies. Readiness queries the service database (when configured) and RabbitMQ. Tests include controller liveness smoke cases.
 
+The identity app adds a full authentication module: Argon2id passwords, email and phone verification, JWT access tokens, rotating opaque refresh sessions with reuse detection, password recovery, persisted login/verification rate limits, audit records, role permissions and global authentication/permission guards. Public routes are explicit. The first administrator is created only by the `auth:seed-super-admin` command. See [Phase One](PHASE_ONE_IDENTITY.md).
+
 ## Frontend baseline
 
-The web shell has routing for home, sign-in, seller and administration entry points, a responsive SokoLink visual identity, API client/error type, and reusable loading/error states. Sign-in shows a clear not-connected message and does not fake authentication. No business records or mock catalogue/order flows are provided.
+The web shell has routing for home, sign-up, email verification, sign-in, password recovery, account, seller and administration entry points, a responsive SokoLink visual identity, API client/error type, reusable loading/error/form components and protected-route checks. Authentication uses an in-memory access token and the HTTP-only refresh cookie; protected pages wait for session bootstrap and redirect anonymous visitors to sign-in. No mock catalogue, order or payment records are provided.
 
 ## Persistence and migrations
 
-PostgreSQL runs in one development container. Its first initialization creates one database and owner role per data-owning service with distinct local passwords. The PostgreSQL superuser credential is used only by database initialization/operations; application connection strings use owner roles. Docker init scripts run only on an empty data volume. Per-service Prisma schema and migration-policy files are prepared; there are no domain tables or migrations yet. Apply a service migration with `npm run db:migrate:<service>` after adding that service's reviewed migration. Compose data survives `docker compose down`; remove it with `docker compose down -v`.
+PostgreSQL runs in one development container. Its first initialization creates one database and owner role per data-owning service with distinct local passwords. The PostgreSQL superuser credential is used only by database initialization/operations; application connection strings use owner roles. Docker init scripts run only on an empty data volume. The identity service has the reviewed Phase One migration for users, roles, refresh sessions, verification tokens, authentication attempts, audit records, rate-limit events and an outbox table. Apply it with `npm run db:migrate:identity`. Compose data survives `docker compose down`; remove it with `docker compose down -v`.
 
 ## Environment and secrets
 
@@ -49,8 +51,12 @@ Stop without removing data: `docker compose down`. Inspect state: `docker compos
 
 ## Verification status for this execution
 
-The following attempts were made on 2026-11-12:
+On 2026-11-13:
 
-- `npm view nx version` and `npm install`: blocked because `registry.npmjs.org` DNS lookup returned `EAI_AGAIN`; no dependency tree or package lock could be generated.
-- Podman-backed `docker` CLI: blocked while creating the rootless namespace (`newuidmap ... Operation not permitted`). Changing `XDG_RUNTIME_DIR` and the Podman storage paths did not resolve the user namespace restriction.
-- Therefore Nx builds, ESLint, Vitest, Compose startup, container health, database/RabbitMQ connectivity and browser accessibility were not executed. No success is claimed for those checks. Run them in a network-enabled environment with working Docker Compose before Phase One.
+- `npm run build`: passed for all 12 projects.
+- `npm test`: passed for all 10 test projects.
+- `npm run lint`: passed for all 12 projects.
+- `npm run db:migrate:identity`: blocked with Prisma `P1001` because no PostgreSQL server is running at `localhost:5432`.
+- Docker/Compose startup, container health, RabbitMQ/PostgreSQL integration, gateway-to-identity forwarding and browser accessibility were not executed because this environment has no Docker Engine, Compose plugin or PostgreSQL server.
+
+No success is claimed for the blocked checks. Re-run the migration and Compose/browser verification in a Docker-enabled environment before treating Phase One as production-ready.

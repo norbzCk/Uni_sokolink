@@ -3,14 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run prisma:generate && tsc -p tsconfig.build.json",
     "start:dev": "tsx watch src/main.ts",
     "start:prod": "node dist/main.js",
     "test": "vitest run",
-    "lint": "eslint src --max-warnings=0"
+    "test:di": "node scripts/check-di.cjs",
+    "lint": "eslint src --max-warnings=0",
+    "seed:super-admin": "tsx src/scripts/seed-super-admin.ts",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate deploy --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@sokolink/platform": "0.1.0",
-    "@sokolink/contracts": "0.1.0"
+    "@sokolink/contracts": "0.1.0",
+    "@prisma/client": "6.19.0",
+    "argon2": "0.44.0",
+    "cookie-parser": "1.4.7",
+    "jsonwebtoken": "9.0.2",
+    "nodemailer": "7.0.10"
   }
 }

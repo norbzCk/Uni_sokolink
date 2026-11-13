@@ -1,10 +1,11 @@
-import { Controller, Get, ServiceUnavailableException, Version } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ReadinessService } from './readiness.service';
+import { Public } from './common/decorators/public.decorator';
 
 @ApiTags('health')
-@Version('1')
-@Controller()
+@Public()
+@Controller({ version: '1' })
 export class HealthController {
   constructor(private readonly readiness: ReadinessService) {}
 
