@@ -8,6 +8,7 @@ import type { AccessTokenClaims } from '../auth.types';
 
 interface AccessTokenInput {
   id: string;
+  sessionId: string;
   email: string;
   fullName: string;
   roles: RoleName[];
@@ -24,6 +25,7 @@ export class TokenService {
     const token = jwt.sign(
       {
         sub: user.id,
+        sid: user.sessionId,
         email: user.email,
         fullName: user.fullName,
         roles: user.roles,
@@ -104,6 +106,7 @@ export class TokenService {
       decoded !== null &&
       decoded.type === 'access' &&
       typeof decoded.sub === 'string' &&
+      typeof decoded.sid === 'string' &&
       typeof decoded.email === 'string' &&
       typeof decoded.fullName === 'string' &&
       Array.isArray(decoded.roles) &&

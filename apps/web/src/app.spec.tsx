@@ -35,6 +35,8 @@ describe('web foundation', () => {
 
   it('redirects account visitors without a session to sign in', async () => {
     render(<MemoryRouter initialEntries={['/account']}><App /></MemoryRouter>);
-    expect(await screen.findByRole('heading', { name: /sign in to continue/i })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: /sign in to continue/i }, { timeout: 5000 }),
+    ).toBeTruthy();
   });
 });

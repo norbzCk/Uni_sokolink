@@ -1,8 +1,10 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Public } from '@sokolink/platform';
 import { ReadinessService } from './readiness.service';
 
 @ApiTags('health')
+@Public()
 @Controller({ version: '1' })
 export class HealthController {
   constructor(private readonly readiness: ReadinessService) {}

@@ -123,13 +123,31 @@ export class VerificationService {
 
       const user = await transaction.user.findUniqueOrThrow({ where: { id: record.userId } });
       if (user.status !== 'SUSPENDED' && user.status !== 'DISABLED') {
-        await transaction.user.update({
+        const updatedUser = await transaction.user.update({
           where: { id: user.id },
           data: {
             emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
             status: user.status === 'PENDING_VERIFICATION' ? 'ACTIVE' : user.status,
           },
         });
+        await transaction.outboxEvent.create({
+          data: {
+            type: 'user.email_verified',
+            version: 1,
+            correlationId: meta.correlationId,
+            payload: { userId: user.id, email: user.email, status: updatedUser.status },
+          },
+        });
+        if (user.status === 'PENDING_VERIFICATION' && updatedUser.status === 'ACTIVE') {
+          await transaction.outboxEvent.create({
+            data: {
+              type: 'user.account_status_changed',
+              version: 1,
+              correlationId: meta.correlationId,
+              payload: { userId: user.id, from: 'PENDING_VERIFICATION', to: 'ACTIVE' },
+            },
+          });
+        }
       }
 
       await transaction.auditLog.create({
@@ -174,24 +192,43 @@ export class VerificationService {
     }
 
     if (!this.tokens.safeEqualHex(record.tokenHash, this.tokens.hmac(code))) {
-      await this.prisma.verificationToken.update({
-        where: { id: record.id },
+      const attempt = await this.prisma.verificationToken.updateMany({
+        where: { id: record.id, consumedAt: null, attemptCount: { lt: record.maxAttempts } },
         data: { attemptCount: { increment: 1 } },
       });
+      if (attempt.count !== 1) {
+        throw invalidToken(
+          'Too many incorrect attempts. Request a new verification code.',
+          'VERIFICATION_ATTEMPTS_EXCEEDED',
+        );
+      }
       throw invalidToken('The verification code is incorrect.', 'INVALID_VERIFICATION_CODE');
     }
 
     await this.prisma.$transaction(async (transaction) => {
       const claimed = await transaction.verificationToken.updateMany({
-        where: { id: record.id, consumedAt: null },
+        where: {
+          id: record.id,
+          consumedAt: null,
+          attemptCount: { lt: record.maxAttempts },
+          expiresAt: { gt: new Date() },
+        },
         data: { consumedAt: new Date() },
       });
       if (claimed.count !== 1) {
         throw invalidToken('The verification code has already been used.');
       }
-      await transaction.user.update({
+      const updatedUser = await transaction.user.update({
         where: { id: userId },
         data: { phoneVerifiedAt: new Date() },
+      });
+      await transaction.outboxEvent.create({
+        data: {
+          type: 'user.phone_verified',
+          version: 1,
+          correlationId: meta.correlationId,
+          payload: { userId, status: updatedUser.status },
+        },
       });
       await transaction.auditLog.create({
         data: {

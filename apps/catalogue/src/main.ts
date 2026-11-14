@@ -15,7 +15,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.useLogger(new PinoNestLogger(logger));
-  app.use(json({ limit: '1mb' }));
+  app.use(json({ limit: '20mb' }));
   app.use(correlationMiddleware);
   app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
   app.setGlobalPrefix('api');

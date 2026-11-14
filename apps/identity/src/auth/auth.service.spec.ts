@@ -31,15 +31,20 @@ const persistedUser = {
 };
 
 function build() {
+  const userModel = {
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn().mockResolvedValue(persistedUser),
+  };
+  const outboxEvent = { create: vi.fn().mockResolvedValue({}) };
   const prisma = {
-    user: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      findUniqueOrThrow: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn().mockResolvedValue(persistedUser),
-    },
+    user: userModel,
     authAttempt: { count: vi.fn().mockResolvedValue(0), create: vi.fn().mockResolvedValue({}) },
+    $transaction: vi.fn(async (callback: (client: unknown) => Promise<unknown>) =>
+      callback({ user: userModel, outboxEvent }),
+    ),
   };
   const passwords = {
     validate: vi.fn().mockReturnValue([]),
@@ -52,7 +57,7 @@ function build() {
     signAccessToken: vi.fn().mockReturnValue({ token: 'access-token', expiresIn: 900 }),
   };
   const sessions = {
-    create: vi.fn().mockResolvedValue({ refreshToken: 'refresh-token' }),
+    create: vi.fn().mockResolvedValue({ sessionId: 'session-1', refreshToken: 'refresh-token' }),
     rotate: vi.fn(),
     revokeByToken: vi.fn(),
   };
@@ -76,7 +81,7 @@ function build() {
     environment as never,
   );
 
-  return { service, prisma, passwords, tokens, sessions, verification, rateLimit, audit };
+  return { service, prisma, passwords, tokens, sessions, verification, rateLimit, audit, outboxEvent };
 }
 
 const registration = {
@@ -89,7 +94,7 @@ const registration = {
 
 describe('AuthService registration', () => {
   it('creates a customer with normalized identifiers and issues both verifications', async () => {
-    const { service, prisma, passwords, verification, rateLimit, audit } = build();
+    const { service, prisma, passwords, verification, rateLimit, audit, outboxEvent } = build();
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.user.create.mockResolvedValue({ ...persistedUser, status: 'PENDING_VERIFICATION' });
 
@@ -112,6 +117,12 @@ describe('AuthService registration', () => {
     expect(createCall.data.roles.create.role).toBe('CUSTOMER');
     expect(verification.issueEmailVerification).toHaveBeenCalledOnce();
     expect(verification.issuePhoneVerification).toHaveBeenCalledOnce();
+    expect(outboxEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: 'user.registered',
+        payload: expect.objectContaining({ userId: 'user-1', roles: ['CUSTOMER'] }),
+      }),
+    });
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'identity.registration.submitted' }));
   });
 
@@ -195,6 +206,16 @@ describe('AuthService login', () => {
     await expect(
       service.login({ identifier: 'amina@example.com', password: 'ValidPassword123' }, meta),
     ).rejects.toMatchObject({ response: { code: 'EMAIL_NOT_VERIFIED' } });
+    expect(sessions.create).not.toHaveBeenCalled();
+  });
+
+  it('requires phone verification before accepting a phone-based login', async () => {
+    const { service, prisma, sessions } = build();
+    prisma.user.findFirst.mockResolvedValue({ ...persistedUser, phoneVerifiedAt: null });
+
+    await expect(
+      service.login({ identifier: '+255712345678', password: 'ValidPassword123' }, meta),
+    ).rejects.toMatchObject({ response: { code: 'PHONE_NOT_VERIFIED' } });
     expect(sessions.create).not.toHaveBeenCalled();
   });
 

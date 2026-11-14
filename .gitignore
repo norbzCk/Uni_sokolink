@@ -10,3 +10,5 @@ project-graph.json
 .DS_Store
 
 *.tsbuildinfo
+
+apps/*/src/generated/

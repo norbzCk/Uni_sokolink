@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { useAuth, type User } from '../auth/auth-context';
@@ -24,6 +24,26 @@ export function AccountPage() {
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [sessions, setSessions] = useState<Array<{
+    id: string;
+    createdAt: string;
+    lastUsedAt: string | null;
+    expiresAt: string;
+    userAgent: string | null;
+    current: boolean;
+  }>>([]);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  useEffect(() => {
+    void authRequest<{ sessions: typeof sessions }>('/auth/sessions')
+      .then((result) => setSessions(result.sessions))
+      .catch((caught) => setError(caught instanceof ApiError ? caught.message : 'Sessions could not be loaded.'));
+  }, [authRequest]);
 
   if (!user) {
     return null;
@@ -74,6 +94,71 @@ export function AccountPage() {
       navigate('/', { replace: true });
     } finally {
       setSigningOut(false);
+    }
+  }
+
+  async function updateProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingProfile(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await authRequest('/users/me', { method: 'PATCH', body: JSON.stringify({ fullName }) });
+      await refreshSession();
+      setMessage('Your profile was updated.');
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'Your profile could not be updated.');
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (newPassword !== passwordConfirmation) {
+      setError('The new passwords do not match.');
+      return;
+    }
+    setChangingPassword(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await authRequest('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, password: newPassword, passwordConfirmation }),
+      });
+      await signOut();
+      navigate('/sign-in', { replace: true, state: { message: 'Password changed. Sign in with your new password.' } });
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'Your password could not be changed.');
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
+  async function logoutAll() {
+    setError(null);
+    try {
+      await authRequest('/auth/logout-all', { method: 'POST' });
+      await signOut();
+      navigate('/sign-in', { replace: true });
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'Other sessions could not be signed out.');
+    }
+  }
+
+  async function revokeSession(sessionId: string, current: boolean) {
+    try {
+      await authRequest('/auth/sessions/' + encodeURIComponent(sessionId), { method: 'DELETE' });
+      if (current) {
+        await signOut();
+        navigate('/sign-in', { replace: true });
+        return;
+      }
+      setSessions((items) => items.filter((session) => session.id !== sessionId));
+      setMessage('The selected session was signed out.');
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'The session could not be signed out.');
     }
   }
 
@@ -153,12 +238,57 @@ export function AccountPage() {
             ))}
           </ul>
           <div className="account-links">
+            <Link className="text-link" to="/orders">Your orders</Link>
+            {!currentUser.roles.includes('SELLER') && <Link className="text-link" to="/sell">Apply to become a seller</Link>}
             {currentUser.roles.includes('SELLER') && <Link className="text-link" to="/seller">Open seller workspace</Link>}
             {(currentUser.roles.includes('ADMIN') || currentUser.roles.includes('SUPER_ADMIN')) && (
               <Link className="text-link" to="/admin">Open administration</Link>
             )}
             <Link className="text-link" to="/">Browse the marketplace</Link>
           </div>
+        </article>
+
+        <article className="account-card">
+          <h2>Profile</h2>
+          <form className="auth-form" onSubmit={updateProfile}>
+            <FormField label="Full legal name" name="fullName" autoComplete="name" minLength={2} maxLength={160} required value={fullName} onChange={(event) => setFullName(event.target.value)} />
+            <button className="button button-primary" type="submit" disabled={savingProfile || fullName.trim().length < 2}>
+              {savingProfile ? 'Saving…' : 'Save profile'}
+            </button>
+          </form>
+        </article>
+
+        <article className="account-card">
+          <h2>Change password</h2>
+          <p className="muted">Changing your password signs out all active sessions.</p>
+          <form className="auth-form" onSubmit={changePassword}>
+            <FormField label="Current password" name="currentPassword" type="password" autoComplete="current-password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
+            <FormField label="New password" name="newPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+            <FormField label="Confirm new password" name="passwordConfirmation" type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} />
+            <button className="button button-primary" type="submit" disabled={changingPassword}>
+              {changingPassword ? 'Changing…' : 'Change password'}
+            </button>
+          </form>
+        </article>
+
+        <article className="account-card">
+          <div className="account-heading">
+            <div><h2>Active sessions</h2><p className="muted">Sign out devices you no longer use.</p></div>
+            {sessions.length > 1 && <button className="button button-outline" type="button" onClick={logoutAll}>Sign out all</button>}
+          </div>
+          {sessions.length === 0 ? <p className="muted">No active sessions found.</p> : (
+            <ul className="session-list">
+              {sessions.map((session) => (
+                <li key={session.id}>
+                  <div>
+                    <strong>{session.current ? 'This device' : (session.userAgent ?? 'Other device')}</strong>
+                    <p className="muted">Signed in {new Date(session.createdAt).toLocaleString()}</p>
+                  </div>
+                  <button className="text-link" type="button" onClick={() => void revokeSession(session.id, session.current)}>Sign out</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </article>
       </div>
     </section>

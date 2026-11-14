@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -7,4 +8,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Domain models are added by this service's implementation phase.
+enum PaymentMethodKind {
+  CASH
+  MOBILE_MONEY
+  BANK_TRANSFER
+  CARD
+}
+
+enum PaymentRecordStatus {
+  PENDING
+  PENDING_CONFIRMATION
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model PaymentMethod {
+  code         String            @id @db.VarChar(40)
+  name         String            @db.VarChar(120)
+  description  String            @db.VarChar(300)
+  kind         PaymentMethodKind
+  enabled      Boolean           @default(false)
+  instructions String?           @db.Text
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime          @updatedAt @db.Timestamptz(3)
+
+  payments Payment[]
+}
+
+model Payment {
+  id           String              @id @default(uuid()) @db.Uuid
+  orderId      String              @unique @db.Uuid
+  buyerId      String              @db.Uuid
+  amountTzs    Int
+  currency     String              @default("TZS") @db.VarChar(3)
+  methodCode   String              @db.VarChar(40)
+  methodName   String              @db.VarChar(120)
+  status       PaymentRecordStatus @default(PENDING)
+  instructions String?             @db.Text
+  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(3)
+
+  method PaymentMethod @relation(fields: [methodCode], references: [code], onDelete: Restrict)
+
+  @@index([buyerId, createdAt])
+  @@index([status, createdAt])
+}

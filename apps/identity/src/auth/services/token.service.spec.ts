@@ -18,6 +18,7 @@ describe('TokenService', () => {
   it('signs and verifies access tokens with expected claims', () => {
     const signed = tokens.signAccessToken({
       id: 'user-1',
+      sessionId: 'session-1',
       email: 'student@example.com',
       fullName: 'Amina Hassan',
       roles: ['CUSTOMER', 'SELLER'],
@@ -25,6 +26,7 @@ describe('TokenService', () => {
     const claims = tokens.verifyAccessToken(signed.token);
     expect(signed.expiresIn).toBe(900);
     expect(claims.sub).toBe('user-1');
+    expect(claims.sid).toBe('session-1');
     expect(claims.type).toBe('access');
     expect(claims.roles).toEqual(['CUSTOMER', 'SELLER']);
   });
@@ -32,6 +34,7 @@ describe('TokenService', () => {
   it('rejects tampered tokens', () => {
     const signed = tokens.signAccessToken({
       id: 'user-1',
+      sessionId: 'session-1',
       email: 'student@example.com',
       fullName: 'Amina Hassan',
       roles: ['CUSTOMER'],

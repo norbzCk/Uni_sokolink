@@ -20,6 +20,7 @@ export interface AuthResponse {
 
 export interface AccessTokenClaims {
   sub: string;
+  sid: string;
   email: string;
   fullName: string;
   roles: RoleName[];

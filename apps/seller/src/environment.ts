@@ -11,6 +11,12 @@ const EnvironmentSchema = z.object({
   AMQP_URL: z.string().min(1),
   CORS_ORIGINS: z.string().default('http://localhost:5173').transform((value) => value.split(',').map((origin) => origin.trim())),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  ACCESS_TOKEN_ISSUER: z.string().min(1).default('http://localhost:3000'),
+  ACCESS_TOKEN_AUDIENCE: z.string().min(1).default('sokolink-web'),
+  ACCESS_TOKEN_SIGNING_KEY: z.string().min(32, 'must contain at least 32 characters'),
+  ACCESS_TOKEN_SIGNING_KEY_PREVIOUS: z.string().min(32).optional(),
+  INTERNAL_SERVICE_TOKEN: z.string().min(1).default('local-internal-token'),
+  IDENTITY_SERVICE_URL: z.string().url().default('http://localhost:3101'),
 });
 
 export function loadEnvironment() {

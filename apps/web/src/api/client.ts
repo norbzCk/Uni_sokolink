@@ -74,3 +74,10 @@ export async function apiRequest<T>(
   }
   return (await response.json()) as T;
 }
+
+export function resolveMediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  const base = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  return base + (path.startsWith('/') ? path : '/' + path);
+}
