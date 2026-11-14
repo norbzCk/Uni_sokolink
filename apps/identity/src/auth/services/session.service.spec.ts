@@ -119,3 +119,58 @@ describe('SessionService rotation', () => {
     expect(committed).toHaveLength(0);
   });
 });
+
+describe('SessionService management', () => {
+  it('marks the current session without exposing refresh token material', async () => {
+    const prisma = {
+      refreshSession: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'current-session', userId: 'user-1' }),
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'current-session',
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+            lastUsedAt: null,
+            expiresAt: new Date('2026-02-01T00:00:00Z'),
+            userAgent: 'browser',
+          },
+        ]),
+      },
+    };
+    const service = new SessionService(
+      prisma as never,
+      { hashToken: vi.fn().mockReturnValue('hashed-token') } as never,
+      {} as never,
+      environment,
+    );
+
+    const result = await service.listActiveForUser('user-1', 'raw-refresh-token');
+
+    expect(result).toEqual([
+      expect.objectContaining({ id: 'current-session', current: true, userAgent: 'browser' }),
+    ]);
+    expect(JSON.stringify(result)).not.toContain('raw-refresh-token');
+  });
+
+  it('revokes a session with both owner and session constraints', async () => {
+    const prisma = {
+      refreshSession: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'session-2', userId: 'user-1' }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const service = new SessionService(
+      prisma as never,
+      { hashToken: vi.fn().mockReturnValue('hashed-token') } as never,
+      {} as never,
+      environment,
+    );
+
+    const result = await service.revokeOneForUser('user-1', 'session-2', 'raw-refresh-token');
+
+    expect(result).toEqual({ revoked: true, current: true });
+    expect(prisma.refreshSession.updateMany).toHaveBeenCalledWith({
+      where: { id: 'session-2', userId: 'user-1', revokedAt: null },
+      data: expect.objectContaining({ revocationReason: 'user_revoked' }),
+    });
+  });
+});

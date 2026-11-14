@@ -42,9 +42,18 @@ async function main(): Promise<void> {
   const phoneNormalized = normalizePhone(phone);
   const existing = await prisma.user.findFirst({
     where: { OR: [{ emailNormalized }, { phoneNormalized }] },
-    select: { id: true },
+    include: { roles: true },
   });
   if (existing) {
+    if (
+      existing.emailNormalized === emailNormalized &&
+      existing.phoneNormalized === phoneNormalized &&
+      existing.status === 'ACTIVE' &&
+      existing.roles.some((assignment) => assignment.role === 'SUPER_ADMIN')
+    ) {
+      console.log('SUPER_ADMIN bootstrap already completed for account ' + existing.id + '.');
+      return;
+    }
     throw new Error('An account already uses this email address or phone number.');
   }
 
@@ -57,34 +66,44 @@ async function main(): Promise<void> {
   });
   const now = new Date();
 
-  const user = await prisma.user.create({
-    data: {
-      fullName,
-      email,
-      emailNormalized,
-      phone,
-      phoneNormalized,
-      passwordHash,
-      status: 'ACTIVE',
-      emailVerifiedAt: now,
-      phoneVerifiedAt: now,
-      roles: { create: { role: 'SUPER_ADMIN' } },
-    },
-    select: { id: true, email: true },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      actorId: null,
-      action: 'identity.super_admin.seeded',
-      targetType: 'user',
-      targetId: user.id,
-      metadata: {
-        emailHash: createHmac('sha256', environment.ACCESS_TOKEN_SIGNING_KEY)
-          .update(emailNormalized)
-          .digest('hex'),
+  const user = await prisma.$transaction(async (transaction) => {
+    const created = await transaction.user.create({
+      data: {
+        fullName,
+        email,
+        emailNormalized,
+        phone,
+        phoneNormalized,
+        passwordHash,
+        status: 'ACTIVE',
+        emailVerifiedAt: now,
+        phoneVerifiedAt: now,
+        roles: { create: { role: 'SUPER_ADMIN' } },
       },
-    },
+      select: { id: true, email: true },
+    });
+
+    await transaction.auditLog.create({
+      data: {
+        actorId: null,
+        action: 'identity.super_admin.seeded',
+        targetType: 'user',
+        targetId: created.id,
+        metadata: {
+          emailHash: createHmac('sha256', environment.ACCESS_TOKEN_SIGNING_KEY)
+            .update(emailNormalized)
+            .digest('hex'),
+        },
+      },
+    });
+    await transaction.outboxEvent.create({
+      data: {
+        type: 'user.role_changed',
+        version: 1,
+        payload: { userId: created.id, role: 'SUPER_ADMIN', change: 'granted', reason: 'bootstrap' },
+      },
+    });
+    return created;
   });
 
   console.log('Created SUPER_ADMIN account ' + user.email + ' (' + user.id + ').');

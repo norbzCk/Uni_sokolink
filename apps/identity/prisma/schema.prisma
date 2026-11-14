@@ -153,6 +153,7 @@ model OutboxEvent {
   id          String    @id @default(uuid()) @db.Uuid
   type        String    @db.VarChar(120)
   version     Int       @default(1)
+  correlationId String?  @db.VarChar(128)
   payload     Json
   occurredAt  DateTime  @default(now()) @db.Timestamptz(3)
   publishedAt DateTime? @db.Timestamptz(3)

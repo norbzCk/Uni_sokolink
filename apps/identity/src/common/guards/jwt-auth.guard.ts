@@ -51,6 +51,21 @@ export class JwtAuthGuard implements CanActivate {
         message: 'Your session is no longer valid. Sign in again.',
       });
     }
+    const session = await this.prisma.refreshSession.findUnique({
+      where: { id: claims.sid },
+      select: { userId: true, revokedAt: true, expiresAt: true },
+    });
+    if (
+      !session ||
+      session.userId !== user.id ||
+      session.revokedAt !== null ||
+      session.expiresAt <= new Date()
+    ) {
+      throw new UnauthorizedException({
+        code: 'SESSION_INVALID',
+        message: 'Your session is no longer valid. Sign in again.',
+      });
+    }
     if (user.status !== 'ACTIVE') {
       throw new ForbiddenException({
         code: 'ACCOUNT_NOT_ACTIVE',

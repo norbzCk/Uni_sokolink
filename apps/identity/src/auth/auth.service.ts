@@ -108,18 +108,34 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(dto.password);
     let user: UserWithRoles;
     try {
-      user = await this.prisma.user.create({
-        data: {
-          fullName: dto.fullName.trim(),
-          email: dto.email.trim(),
-          emailNormalized,
-          phone: dto.phone.trim(),
-          phoneNormalized,
-          passwordHash,
-          status: 'PENDING_VERIFICATION',
-          roles: { create: { role: 'CUSTOMER' } },
-        },
-        include: { roles: true },
+      user = await this.prisma.$transaction(async (transaction) => {
+        const created = await transaction.user.create({
+          data: {
+            fullName: dto.fullName.trim(),
+            email: dto.email.trim(),
+            emailNormalized,
+            phone: dto.phone.trim(),
+            phoneNormalized,
+            passwordHash,
+            status: 'PENDING_VERIFICATION',
+            roles: { create: { role: 'CUSTOMER' } },
+          },
+          include: { roles: true },
+        });
+        await transaction.outboxEvent.create({
+          data: {
+            type: 'user.registered',
+            version: 1,
+            correlationId: meta.correlationId,
+            payload: {
+              userId: created.id,
+              email: created.email,
+              phone: created.phone,
+              roles: ['CUSTOMER'],
+            },
+          },
+        });
+        return created;
       });
     } catch (error) {
       if (
@@ -183,7 +199,8 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, meta: RequestMeta): Promise<{ auth: AuthResponse; refreshToken: string }> {
-    const normalizedIdentifier = dto.identifier.includes('@')
+    const usesEmail = dto.identifier.includes('@');
+    const normalizedIdentifier = usesEmail
       ? normalizeEmail(dto.identifier)
       : normalizePhone(dto.identifier);
     const identifierHash = this.tokens.hmac(normalizedIdentifier);
@@ -191,7 +208,7 @@ export class AuthService {
     await this.assertLoginRateLimit(identifierHash, meta.ipAddress);
 
     const user = await this.prisma.user.findFirst({
-      where: dto.identifier.includes('@')
+      where: usesEmail
         ? { emailNormalized: normalizedIdentifier }
         : { phoneNormalized: normalizedIdentifier },
       include: { roles: true },
@@ -249,6 +266,13 @@ export class AuthService {
         message: 'Verify your email address before signing in.',
       });
     }
+    if (!usesEmail && !user.phoneVerifiedAt) {
+      await this.recordLoginAttempt(identifierHash, meta.ipAddress, false, 'phone_not_verified');
+      throw new ForbiddenException({
+        code: 'PHONE_NOT_VERIFIED',
+        message: 'Verify your phone number before signing in with it.',
+      });
+    }
     if (user.status !== 'ACTIVE') {
       await this.recordLoginAttempt(identifierHash, meta.ipAddress, false, 'account_inactive');
       throw new ForbiddenException({
@@ -266,6 +290,7 @@ export class AuthService {
     const session = await this.sessions.create(user.id, meta);
     const access = this.tokens.signAccessToken({
       id: user.id,
+      sessionId: session.sessionId,
       email: user.email,
       fullName: user.fullName,
       roles: this.rolesOf(user),
@@ -293,6 +318,7 @@ export class AuthService {
     const rotated = await this.sessions.rotate(refreshToken, meta);
     const access = this.tokens.signAccessToken({
       id: rotated.user.id,
+      sessionId: rotated.sessionId,
       email: rotated.user.email,
       fullName: rotated.user.fullName,
       roles: rotated.user.roles.map((assignment) => assignment.role),
@@ -326,6 +352,40 @@ export class AuthService {
         meta,
       });
     }
+  }
+
+  async logoutAll(userId: string, meta: RequestMeta): Promise<void> {
+    await this.sessions.revokeAllForUser(userId, 'logout_all');
+    await this.audit.record({
+      actorId: userId,
+      action: 'identity.logout_all',
+      targetType: 'user',
+      targetId: userId,
+      meta,
+    });
+  }
+
+  async listSessions(userId: string, currentToken?: string) {
+    return this.sessions.listActiveForUser(userId, currentToken);
+  }
+
+  async revokeSession(
+    userId: string,
+    sessionId: string,
+    currentToken: string | undefined,
+    meta: RequestMeta,
+  ): Promise<{ revoked: boolean; current: boolean }> {
+    const result = await this.sessions.revokeOneForUser(userId, sessionId, currentToken);
+    if (result.revoked) {
+      await this.audit.record({
+        actorId: userId,
+        action: 'identity.session.revoked',
+        targetType: 'refresh_session',
+        targetId: sessionId,
+        meta,
+      });
+    }
+    return result;
   }
 
   async resendEmailVerification(email: string, meta: RequestMeta): Promise<void> {
@@ -508,6 +568,14 @@ export class AuthService {
           lockedUntil: null,
         },
       });
+      await transaction.outboxEvent.create({
+        data: {
+          type: 'user.password_changed',
+          version: 1,
+          correlationId: meta.correlationId,
+          payload: { userId: user.id, reason: 'password_reset' },
+        },
+      });
       await transaction.refreshSession.updateMany({
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date(), revocationReason: 'password_reset' },
@@ -531,6 +599,89 @@ export class AuthService {
       include: { roles: true },
     });
     return this.toUserSummary(user);
+  }
+
+  async updateProfile(userId: string, fullName: string, meta: RequestMeta): Promise<UserSummary> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { fullName: fullName.trim() },
+      include: { roles: true },
+    });
+    await this.audit.record({
+      actorId: userId,
+      action: 'identity.profile.updated',
+      targetType: 'user',
+      targetId: userId,
+      meta,
+    });
+    return this.toUserSummary(user);
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    password: string,
+    passwordConfirmation: string,
+    meta: RequestMeta,
+  ): Promise<void> {
+    if (password !== passwordConfirmation) {
+      throw new BadRequestException({
+        code: 'PASSWORD_MISMATCH',
+        message: 'The passwords do not match.',
+        fieldErrors: { passwordConfirmation: 'The passwords do not match.' },
+      });
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !(await this.passwords.verify(user.passwordHash, currentPassword))) {
+      throw new UnauthorizedException({
+        code: 'CURRENT_PASSWORD_INVALID',
+        message: 'The current password is incorrect.',
+      });
+    }
+    if (await this.passwords.verify(user.passwordHash, password)) {
+      throw new BadRequestException({
+        code: 'PASSWORD_UNCHANGED',
+        message: 'Choose a password different from your current password.',
+      });
+    }
+    const passwordIssues = this.passwords.validate(password, {
+      email: user.email,
+      fullName: user.fullName,
+    });
+    if (passwordIssues.length > 0) {
+      throw new BadRequestException({
+        code: 'WEAK_PASSWORD',
+        message: 'Choose a stronger password.',
+        fieldErrors: { password: passwordIssues.join(' ') },
+      });
+    }
+
+    const passwordHash = await this.passwords.hash(password);
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.user.update({ where: { id: userId }, data: { passwordHash } });
+      await transaction.outboxEvent.create({
+        data: {
+          type: 'user.password_changed',
+          version: 1,
+          correlationId: meta.correlationId,
+          payload: { userId, reason: 'password_changed' },
+        },
+      });
+      await transaction.refreshSession.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date(), revocationReason: 'password_changed' },
+      });
+      await transaction.auditLog.create({
+        data: {
+          actorId: userId,
+          action: 'identity.password_changed',
+          targetType: 'user',
+          targetId: userId,
+          ipAddress: meta.ipAddress,
+          correlationId: meta.correlationId,
+        },
+      });
+    });
   }
 
   private async assertLoginRateLimit(identifierHash: string, ipAddress: string | null): Promise<void> {

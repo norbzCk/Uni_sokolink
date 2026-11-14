@@ -24,6 +24,7 @@ interface SessionUser {
 }
 
 export interface IssuedRefreshSession {
+  sessionId: string;
   refreshToken: string;
   expiresAt: Date;
   familyId: string;
@@ -31,6 +32,15 @@ export interface IssuedRefreshSession {
 
 export interface RotatedRefreshSession extends IssuedRefreshSession {
   user: SessionUser;
+}
+
+export interface SessionSummary {
+  id: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string;
+  userAgent: string | null;
+  current: boolean;
 }
 
 @Injectable()
@@ -51,7 +61,7 @@ export class SessionService {
   async create(userId: string, meta: RequestMeta, familyId = randomUUID()): Promise<IssuedRefreshSession> {
     const refreshToken = this.tokens.createOpaqueToken();
     const expiresAt = this.expiryDate();
-    await this.prisma.refreshSession.create({
+    const session = await this.prisma.refreshSession.create({
       data: {
         familyId,
         userId,
@@ -61,7 +71,7 @@ export class SessionService {
         userAgent: meta.userAgent,
       },
     });
-    return { refreshToken, expiresAt, familyId };
+    return { sessionId: session.id, refreshToken, expiresAt, familyId };
   }
 
   async rotate(refreshToken: string, meta: RequestMeta): Promise<RotatedRefreshSession> {
@@ -138,6 +148,7 @@ export class SessionService {
         return {
           kind: 'rotated',
           session: {
+            sessionId: nextSession.id,
             refreshToken: nextToken,
             expiresAt,
             familyId: session.familyId,
@@ -207,6 +218,49 @@ export class SessionService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date(), revocationReason: reason },
     });
+  }
+
+  async listActiveForUser(userId: string, currentToken?: string): Promise<SessionSummary[]> {
+    const current = currentToken
+      ? await this.prisma.refreshSession.findUnique({
+          where: { tokenHash: this.tokens.hashToken(currentToken) },
+          select: { id: true, userId: true },
+        })
+      : null;
+    const sessions = await this.prisma.refreshSession.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true, lastUsedAt: true, expiresAt: true, userAgent: true },
+    });
+    return sessions.map((session) => ({
+      id: session.id,
+      createdAt: session.createdAt.toISOString(),
+      lastUsedAt: session.lastUsedAt?.toISOString() ?? null,
+      expiresAt: session.expiresAt.toISOString(),
+      userAgent: session.userAgent,
+      current: current?.userId === userId && current.id === session.id,
+    }));
+  }
+
+  async revokeOneForUser(
+    userId: string,
+    sessionId: string,
+    currentToken: string | undefined,
+  ): Promise<{ revoked: boolean; current: boolean }> {
+    const current = currentToken
+      ? await this.prisma.refreshSession.findUnique({
+          where: { tokenHash: this.tokens.hashToken(currentToken) },
+          select: { id: true, userId: true },
+        })
+      : null;
+    const result = await this.prisma.refreshSession.updateMany({
+      where: { id: sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date(), revocationReason: 'user_revoked' },
+    });
+    return {
+      revoked: result.count === 1,
+      current: current?.userId === userId && current.id === sessionId,
+    };
   }
 
   private async revokeFamily(

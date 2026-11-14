@@ -7,6 +7,7 @@
     "start:dev": "tsx watch src/main.ts",
     "start:prod": "node dist/main.js",
     "test": "vitest run",
+    "test:e2e": "node scripts/identity-e2e.cjs",
     "test:di": "node scripts/check-di.cjs",
     "lint": "eslint src --max-warnings=0",
     "seed:super-admin": "tsx src/scripts/seed-super-admin.ts",

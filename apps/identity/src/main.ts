@@ -30,6 +30,7 @@ async function bootstrap(): Promise<void> {
     .setTitle('SokoLink identity')
     .setDescription('Service API contract')
     .setVersion('1.0.0')
+    .addBearerAuth()
     .addServer('/api/v1')
     .build();
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, openApi));
