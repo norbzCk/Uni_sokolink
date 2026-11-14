@@ -4,7 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { json } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, type Options } from 'http-proxy-middleware';
 import { createLogger, correlationMiddleware } from '@sokolink/platform';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './global-exception.filter';
@@ -19,16 +19,15 @@ async function bootstrap(): Promise<void> {
   app.useLogger(new PinoNestLogger(logger));
   app.use(correlationMiddleware);
 
-  app.use(
-    '/api/v1/auth',
-    createProxyMiddleware({
-      target: env.IDENTITY_SERVICE_URL,
+  const registerProxy = (mount: string, target: string, serviceName: string): void => {
+    const options: Options = {
+      target,
       changeOrigin: true,
       xfwd: true,
-      pathRewrite: (path) => '/api/v1/auth' + path,
+      pathRewrite: (path) => mount + path,
       on: {
         error: (error, _request, response) => {
-          logger.error({ err: error, target: env.IDENTITY_SERVICE_URL }, 'identity proxy failed');
+          logger.error({ err: error, target, service: serviceName }, 'service proxy failed');
           const httpResponse = response as {
             statusCode?: number;
             setHeader?: (name: string, value: string) => void;
@@ -41,14 +40,24 @@ async function bootstrap(): Promise<void> {
               JSON.stringify({
                 statusCode: 502,
                 error: 'Bad Gateway',
-                message: 'The identity service is unavailable. Try again shortly.',
+                message: 'The ' + serviceName + ' service is unavailable. Try again shortly.',
               }),
             );
           }
         },
       },
-    }),
-  );
+    };
+    app.use(mount, createProxyMiddleware(options));
+  };
+
+  registerProxy('/api/v1/auth', env.IDENTITY_SERVICE_URL, 'identity');
+  registerProxy('/api/v1/users', env.IDENTITY_SERVICE_URL, 'identity');
+  registerProxy('/api/v1/seller', env.SELLER_SERVICE_URL, 'seller');
+  registerProxy('/api/v1/catalogue', env.CATALOGUE_SERVICE_URL, 'catalogue');
+  registerProxy('/api/v1/inventory', env.INVENTORY_SERVICE_URL, 'inventory');
+  registerProxy('/api/v1/orders', env.COMMERCE_SERVICE_URL, 'commerce');
+  registerProxy('/api/v1/payment', env.PAYMENT_SERVICE_URL, 'payment');
+  registerProxy('/api/v1/fulfilment', env.FULFILMENT_SERVICE_URL, 'fulfilment');
 
   app.use(json({ limit: '1mb' }));
   app.use(cookieParser());
@@ -61,7 +70,7 @@ async function bootstrap(): Promise<void> {
 
   const openApi = new DocumentBuilder()
     .setTitle('SokoLink api-gateway')
-    .setDescription('Public API ingress. Identity routes are proxied to the identity service.')
+    .setDescription('Public API ingress. Domain routes are proxied to their owning services.')
     .setVersion('1.0.0')
     .addServer('/api/v1')
     .build();

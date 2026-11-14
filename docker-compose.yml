@@ -7,6 +7,10 @@ x-service-common: &service-common
     AMQP_URL: amqp://${RABBITMQ_USER:?Set RABBITMQ_USER in .env}:${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}@rabbitmq:5672
     CORS_ORIGINS: http://localhost:${WEB_PORT:-5173}
     LOG_LEVEL: info
+    ACCESS_TOKEN_ISSUER: ${ACCESS_TOKEN_ISSUER:-http://localhost:3000}
+    ACCESS_TOKEN_AUDIENCE: ${ACCESS_TOKEN_AUDIENCE:-sokolink-web}
+    ACCESS_TOKEN_SIGNING_KEY: ${ACCESS_TOKEN_SIGNING_KEY:?Set ACCESS_TOKEN_SIGNING_KEY in .env}
+    INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
   depends_on:
     postgres:
       condition: service_healthy
@@ -15,7 +19,10 @@ x-service-common: &service-common
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: sokolink/postgres:17-local
+    build:
+      context: ./infra/postgres
+      dockerfile: Dockerfile
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -32,7 +39,6 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/10-init-databases.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
       interval: 5s
@@ -73,6 +79,13 @@ services:
       SERVICE_PORT: 3000
       PORT: 3000
       IDENTITY_SERVICE_URL: http://identity:3101
+      SELLER_SERVICE_URL: http://seller:3102
+      CATALOGUE_SERVICE_URL: http://catalogue:3103
+      INVENTORY_SERVICE_URL: http://inventory:3104
+      COMMERCE_SERVICE_URL: http://commerce:3105
+      PAYMENT_SERVICE_URL: http://payment:3106
+      FULFILMENT_SERVICE_URL: http://fulfilment:3107
+      NOTIFICATIONS_SERVICE_URL: http://notifications:3108
     ports:
       - "${GATEWAY_PORT:-3000}:3000"
     healthcheck:
@@ -91,31 +104,31 @@ services:
   seller:
     <<: *service-common
     build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: seller}}
-    environment: {<<: *service-environment, SERVICE_NAME: seller, PORT: 3102, DATABASE_URL: "postgresql://seller_owner:${SELLER_DB_PASSWORD:?Set SELLER_DB_PASSWORD in .env}@postgres:5432/seller_db?schema=public"}
+    environment: {<<: *service-environment, SERVICE_NAME: seller, PORT: 3102, DATABASE_URL: "postgresql://seller_owner:${SELLER_DB_PASSWORD:?Set SELLER_DB_PASSWORD in .env}@postgres:5432/seller_db?schema=public", RUN_MIGRATIONS: "true", IDENTITY_SERVICE_URL: http://identity:3101}
     ports: ["3102:3102"]
     healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3102/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
   catalogue:
     <<: *service-common
     build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: catalogue}}
-    environment: {<<: *service-environment, SERVICE_NAME: catalogue, PORT: 3103, DATABASE_URL: "postgresql://catalogue_owner:${CATALOGUE_DB_PASSWORD:?Set CATALOGUE_DB_PASSWORD in .env}@postgres:5432/catalogue_db?schema=public"}
+    environment: {<<: *service-environment, SERVICE_NAME: catalogue, PORT: 3103, DATABASE_URL: "postgresql://catalogue_owner:${CATALOGUE_DB_PASSWORD:?Set CATALOGUE_DB_PASSWORD in .env}@postgres:5432/catalogue_db?schema=public", RUN_MIGRATIONS: "true", INVENTORY_SERVICE_URL: http://inventory:3104, SELLER_SERVICE_URL: http://seller:3102}
     ports: ["3103:3103"]
     healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3103/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
   inventory:
     <<: *service-common
     build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: inventory}}
-    environment: {<<: *service-environment, SERVICE_NAME: inventory, PORT: 3104, DATABASE_URL: "postgresql://inventory_owner:${INVENTORY_DB_PASSWORD:?Set INVENTORY_DB_PASSWORD in .env}@postgres:5432/inventory_db?schema=public"}
+    environment: {<<: *service-environment, SERVICE_NAME: inventory, PORT: 3104, DATABASE_URL: "postgresql://inventory_owner:${INVENTORY_DB_PASSWORD:?Set INVENTORY_DB_PASSWORD in .env}@postgres:5432/inventory_db?schema=public", RUN_MIGRATIONS: "true"}
     ports: ["3104:3104"]
     healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3104/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
   commerce:
     <<: *service-common
     build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: commerce}}
-    environment: {<<: *service-environment, SERVICE_NAME: commerce, PORT: 3105, DATABASE_URL: "postgresql://commerce_owner:${COMMERCE_DB_PASSWORD:?Set COMMERCE_DB_PASSWORD in .env}@postgres:5432/commerce_db?schema=public"}
+    environment: {<<: *service-environment, SERVICE_NAME: commerce, PORT: 3105, DATABASE_URL: "postgresql://commerce_owner:${COMMERCE_DB_PASSWORD:?Set COMMERCE_DB_PASSWORD in .env}@postgres:5432/commerce_db?schema=public", RUN_MIGRATIONS: "true", CATALOGUE_SERVICE_URL: http://catalogue:3103, INVENTORY_SERVICE_URL: http://inventory:3104, PAYMENT_SERVICE_URL: http://payment:3106}
     ports: ["3105:3105"]
     healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3105/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
   payment:
     <<: *service-common
     build: {context: ., dockerfile: infra/docker/service.Dockerfile, args: {APP_NAME: payment}}
-    environment: {<<: *service-environment, SERVICE_NAME: payment, PORT: 3106, DATABASE_URL: "postgresql://payment_owner:${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}@postgres:5432/payment_db?schema=public"}
+    environment: {<<: *service-environment, SERVICE_NAME: payment, PORT: 3106, DATABASE_URL: "postgresql://payment_owner:${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}@postgres:5432/payment_db?schema=public", RUN_MIGRATIONS: "true"}
     ports: ["3106:3106"]
     healthcheck: {test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3106/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 10s, timeout: 4s, retries: 10, start_period: 25s}
   fulfilment:
