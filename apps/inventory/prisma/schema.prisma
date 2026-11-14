@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -7,4 +8,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Domain models are added by this service's implementation phase.
+enum MovementType {
+  OPENING
+  ADJUSTMENT
+  RESERVATION
+  RELEASE
+  FULFILMENT
+}
+
+model StockItem {
+  productId         String   @id @db.Uuid
+  sellerId          String   @db.Uuid
+  onHand            Int      @default(0)
+  reserved          Int      @default(0)
+  lowStockThreshold Int      @default(5)
+  unit              String   @default("piece") @db.VarChar(30)
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+
+  movements StockMovement[]
+
+  @@index([sellerId])
+}
+
+model StockMovement {
+  id            String       @id @default(uuid()) @db.Uuid
+  productId     String       @db.Uuid
+  sellerId      String       @db.Uuid
+  type          MovementType
+  onHandDelta   Int          @default(0)
+  reservedDelta Int          @default(0)
+  onHandAfter   Int
+  reservedAfter Int
+  reason        String?      @db.VarChar(300)
+  reference     String?      @db.VarChar(120)
+  actorId       String?      @db.Uuid
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+
+  item StockItem @relation(fields: [productId], references: [productId], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+  @@index([sellerId, createdAt])
+}
