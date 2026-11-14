@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -7,4 +8,93 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Domain models are added by this service's implementation phase.
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PENDING_CONFIRMATION
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryMethod {
+  DELIVERY
+  PICKUP
+}
+
+model Order {
+  id                String         @id @default(uuid()) @db.Uuid
+  orderNumber       String         @unique @db.VarChar(24)
+  buyerId           String         @db.Uuid
+  buyerName         String         @db.VarChar(160)
+  buyerEmail        String         @db.VarChar(254)
+  buyerPhone        String         @db.VarChar(32)
+  deliveryMethod    DeliveryMethod
+  contactName       String         @db.VarChar(160)
+  contactPhone      String         @db.VarChar(32)
+  region            String?        @db.VarChar(80)
+  district          String?        @db.VarChar(80)
+  addressLine       String?        @db.VarChar(300)
+  landmark          String?        @db.VarChar(200)
+  notes             String?        @db.VarChar(500)
+  paymentMethodCode String         @db.VarChar(40)
+  paymentMethodName String         @db.VarChar(120)
+  paymentStatus     PaymentStatus  @default(PENDING)
+  status            OrderStatus    @default(PLACED)
+  subtotalTzs       Int
+  deliveryFeeTzs    Int            @default(0)
+  totalTzs          Int
+  currency          String         @default("TZS") @db.VarChar(3)
+  idempotencyKey    String         @db.VarChar(100)
+  createdAt         DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @db.Timestamptz(3)
+
+  sellerOrders SellerOrder[]
+
+  @@unique([buyerId, idempotencyKey])
+  @@index([buyerId, createdAt])
+  @@index([createdAt])
+}
+
+model SellerOrder {
+  id          String      @id @default(uuid()) @db.Uuid
+  orderId     String      @db.Uuid
+  sellerId    String      @db.Uuid
+  sellerName  String      @db.VarChar(160)
+  subtotalTzs Int
+  status      OrderStatus @default(PLACED)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
+
+  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@index([sellerId, createdAt])
+  @@index([orderId])
+}
+
+model OrderItem {
+  id           String @id @default(uuid()) @db.Uuid
+  sellerOrderId String @db.Uuid
+  productId    String @db.Uuid
+  productName  String @db.VarChar(200)
+  productSlug  String @db.VarChar(240)
+  imageUrl     String? @db.VarChar(500)
+  unit         String @db.VarChar(30)
+  unitPriceTzs Int
+  quantity     Int
+  lineTotalTzs Int
+
+  sellerOrder SellerOrder @relation(fields: [sellerOrderId], references: [id], onDelete: Cascade)
+
+  @@index([sellerOrderId])
+  @@index([productId])
+}

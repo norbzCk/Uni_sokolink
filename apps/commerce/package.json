@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "prisma generate --schema prisma/schema.prisma && tsc -p tsconfig.build.json && rm -rf dist/generated && cp -r src/generated dist/generated",
     "start:dev": "tsx watch src/main.ts",
     "start:prod": "node dist/main.js",
     "test": "vitest run",
