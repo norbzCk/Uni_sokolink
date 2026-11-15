@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="IFM student buyer collecting an order on campus">
+  <rect width="800" height="1000" fill="#EFE8DA"/>
+  <rect x="40" y="40" width="720" height="920" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="110" y="120" width="580" height="580" fill="#E6DEC8" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Parcel & Tag illustration -->
+  <rect x="230" y="250" width="340" height="320" rx="8" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <line x1="400" y1="250" x2="400" y2="570" stroke="#F6F1E7" stroke-width="3"/>
+  <rect x="310" y="360" width="180" height="72" rx="6" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <circle cx="336" cy="396" r="7" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <text x="356" y="403" fill="#1B1A17" font-family="sans-serif" font-size="20" font-weight="700">PICKUP READY</text>
+  <text x="110" y="776" fill="#1B1A17" font-family="sans-serif" font-size="26" font-weight="700">For Buyers · 4:5 Photo Slot</text>
+  <text x="110" y="818" fill="#1B1A17" font-family="sans-serif" font-size="19">Student picking up an order between classes at IFM (800×1000)</text>
+</svg>
+

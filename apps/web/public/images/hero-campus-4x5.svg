@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="IFM students at a campus stall in Dar es Salaam">
+  <rect width="800" height="1000" fill="#EFE8DA"/>
+  <rect x="36" y="36" width="728" height="928" fill="#E6DEC8" stroke="#1B1A17" stroke-width="2"/>
+  <line x1="36" y1="710" x2="764" y2="710" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Canopy & Table -->
+  <path d="M120 220h560l28 84H92l28-84Z" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="120" y="304" width="560" height="406" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="120" y="520" width="560" height="190" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Student items -->
+  <rect x="180" y="420" width="96" height="100" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="310" y="396" width="120" height="124" fill="#EFE8DA" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="466" y="434" width="134" height="86" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Caption -->
+  <rect x="72" y="756" width="656" height="156" rx="8" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <circle cx="112" cy="834" r="10" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <text x="142" y="818" fill="#1B1A17" font-family="sans-serif" font-size="24" font-weight="700">IFM Campus · 4:5 Mobile Hero Crop</text>
+  <text x="142" y="858" fill="#1B1A17" font-family="sans-serif" font-size="18">Replace with portrait crop via &lt;picture&gt; (800×1000)</text>
+</svg>
+

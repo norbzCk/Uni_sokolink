@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" role="img" aria-label="IFM students at a campus stall in Dar es Salaam">
+  <rect width="1280" height="720" fill="#EFE8DA"/>
+  <!-- Architectural campus courtyard frame -->
+  <rect x="48" y="48" width="1184" height="624" fill="#E6DEC8" stroke="#1B1A17" stroke-width="2"/>
+  <line x1="48" y1="490" x2="1232" y2="490" stroke="#1B1A17" stroke-width="2"/>
+  <!-- IFM Block Columns -->
+  <rect x="110" y="96" width="84" height="394" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="310" y="96" width="84" height="394" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="510" y="96" width="84" height="394" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Student Stall Canopy -->
+  <path d="M680 210h460l30 68H650l30-68Z" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="680" y="278" width="460" height="212" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="680" y="388" width="460" height="102" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Displayed student goods on table -->
+  <rect x="730" y="328" width="66" height="60" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="820" y="314" width="76" height="74" fill="#EFE8DA" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="920" y="336" width="88" height="52" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="1030" y="320" width="60" height="68" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Price tag label inside frame -->
+  <rect x="88" y="534" width="520" height="96" rx="8" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <circle cx="122" cy="582" r="9" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <text x="150" y="572" fill="#1B1A17" font-family="sans-serif" font-size="22" font-weight="700">IFM Campus Courtyard · 16:9 Hero Photo Slot</text>
+  <text x="150" y="604" fill="#1B1A17" font-family="sans-serif" font-size="17">Replace with real student stall / campus surroundings photo (1280×720)</text>
+</svg>
+

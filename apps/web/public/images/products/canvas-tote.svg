@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Heavyweight cotton canvas campus tote bag with laptop compartment">
+  <rect width="800" height="600" fill="#F2EDE2"/>
+  <rect y="450" width="800" height="150" fill="#E4DDD0"/>
+  <line x1="0" y1="450" x2="800" y2="450" stroke="#D1C8B7" stroke-width="2"/>
+  <ellipse cx="400" cy="492" rx="188" ry="20" fill="#141413" opacity="0.12"/>
+  <!-- Tote straps -->
+  <path d="M324 196 V102 C324 68, 476 68, 476 102 V196" fill="none" stroke="#0F533E" stroke-width="22" stroke-linecap="round"/>
+  <!-- Heavy canvas tote body -->
+  <path d="M242 184h316l-18 296H260L242 184Z" fill="#FAF8F4" stroke="#141413" stroke-width="2.5"/>
+  <path d="M255 412h290l-4 68H260l-5-68Z" fill="#0F533E" stroke="#141413" stroke-width="2.5"/>
+  <!-- Front utility pocket -->
+  <rect x="316" y="256" width="168" height="122" rx="4" fill="#EFEAE0" stroke="#141413" stroke-width="2"/>
+  <rect x="364" y="274" width="72" height="24" rx="2" fill="#D95D24" stroke="#141413" stroke-width="1.5"/>
+  <text x="400" y="290" text-anchor="middle" fill="#FAF8F4" font-family="sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">DAR STUDIO</text>
+</svg>

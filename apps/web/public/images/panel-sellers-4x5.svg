@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="IFM student entrepreneur preparing products for campus orders">
+  <rect width="800" height="1000" fill="#EFE8DA"/>
+  <rect x="40" y="40" width="720" height="920" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="110" y="120" width="580" height="580" fill="#E6DEC8" stroke="#1B1A17" stroke-width="2"/>
+  <!-- Storefront ledger & products -->
+  <rect x="190" y="210" width="420" height="400" rx="8" fill="#F6F1E7" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="190" y="210" width="420" height="74" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <circle cx="230" cy="247" r="8" fill="#F6F1E7"/>
+  <text x="252" y="254" fill="#F6F1E7" font-family="sans-serif" font-size="20" font-weight="700">VERIFIED IFM SHOP</text>
+  <rect x="230" y="324" width="150" height="120" fill="#E8662B" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="410" y="324" width="160" height="120" fill="#EFE8DA" stroke="#1B1A17" stroke-width="2"/>
+  <rect x="230" y="476" width="340" height="90" fill="#0F6B4F" stroke="#1B1A17" stroke-width="2"/>
+  <text x="110" y="776" fill="#1B1A17" font-family="sans-serif" font-size="26" font-weight="700">For Sellers · 4:5 Photo Slot</text>
+  <text x="110" y="818" fill="#1B1A17" font-family="sans-serif" font-size="19">Student entrepreneur packing orders from hostel or stall (800×1000)</text>
+</svg>
+

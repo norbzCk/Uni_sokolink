@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Folded cotton Oxford button-down shirt for campus presentations">
+  <rect width="800" height="600" fill="#F1EDE4"/>
+  <rect y="450" width="800" height="150" fill="#E3DDD0"/>
+  <line x1="0" y1="450" x2="800" y2="450" stroke="#D1C9B8" stroke-width="2"/>
+  <ellipse cx="400" cy="488" rx="205" ry="20" fill="#141413" opacity="0.12"/>
+  <!-- Folded Oxford Shirt -->
+  <rect x="236" y="134" width="328" height="342" rx="12" fill="#D8E2DC" stroke="#141413" stroke-width="2.5"/>
+  <!-- Placket & buttons -->
+  <rect x="382" y="182" width="36" height="294" fill="#E5ECE8" stroke="#141413" stroke-width="2"/>
+  <circle cx="400" cy="236" r="5" fill="#FAF8F4" stroke="#141413" stroke-width="1.5"/>
+  <circle cx="400" cy="306" r="5" fill="#FAF8F4" stroke="#141413" stroke-width="1.5"/>
+  <circle cx="400" cy="376" r="5" fill="#FAF8F4" stroke="#141413" stroke-width="1.5"/>
+  <circle cx="400" cy="442" r="5" fill="#FAF8F4" stroke="#141413" stroke-width="1.5"/>
+  <!-- Collar wings -->
+  <path d="M320 134 L400 198 L348 224 L298 154 Z" fill="#E5ECE8" stroke="#141413" stroke-width="2.5"/>
+  <path d="M480 134 L400 198 L452 224 L502 154 Z" fill="#E5ECE8" stroke="#141413" stroke-width="2.5"/>
+  <!-- Chest pocket & woven garment tag -->
+  <path d="M446 272h76v78l-38 18-38-18v-78Z" fill="#CBD7D0" stroke="#141413" stroke-width="2"/>
+  <rect x="366" y="146" width="68" height="24" rx="2" fill="#0F533E"/>
+  <text x="400" y="162" text-anchor="middle" fill="#FAF8F4" font-family="sans-serif" font-size="10" font-weight="700">100% COTTON</text>
+</svg>

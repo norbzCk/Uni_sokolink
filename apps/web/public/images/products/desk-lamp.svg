@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Rechargeable minimalist LED study desk lamp">
+  <rect width="800" height="600" fill="#F3EFE6"/>
+  <rect y="448" width="800" height="152" fill="#E5DECFE6"/>
+  <line x1="0" y1="448" x2="800" y2="448" stroke="#D1C8B7" stroke-width="2"/>
+  <ellipse cx="420" cy="484" rx="160" ry="18" fill="#141413" opacity="0.12"/>
+  <!-- Warm light cone -->
+  <polygon points="256,158 468,158 520,448 200,448" fill="#FDE68A" opacity="0.28"/>
+  <!-- Weighted circular base -->
+  <rect x="330" y="446" width="200" height="32" rx="8" fill="#1E2422" stroke="#141413" stroke-width="2.5"/>
+  <circle cx="486" cy="462" r="6" fill="#D95D24"/>
+  <!-- Vertical stem -->
+  <rect x="466" y="138" width="16" height="310" fill="#2A322F" stroke="#141413" stroke-width="2"/>
+  <!-- Horizontal LED bar -->
+  <rect x="242" y="132" width="248" height="24" rx="8" fill="#1E2422" stroke="#141413" stroke-width="2.5"/>
+  <rect x="256" y="154" width="204" height="6" rx="2" fill="#FEF08A"/>
+</svg>

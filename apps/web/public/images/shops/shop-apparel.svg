@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400" role="img" aria-label="Dar Campus Carry and Thrift storefront display">
+  <rect width="600" height="400" fill="#EAE3D5"/>
+  <rect x="28" y="28" width="544" height="344" rx="8" fill="#F4EFE6" stroke="#141413" stroke-opacity="0.2" stroke-width="1.5"/>
+  <rect x="86" y="106" width="196" height="214" rx="8" fill="#D8E2DC" stroke="#141413" stroke-width="2"/>
+  <rect x="168" y="106" width="32" height="214" fill="#FAF8F4" stroke="#141413" stroke-width="1.5"/>
+  <path d="M336 144h176l-12 176H348l-12-176Z" fill="#0F533E" stroke="#141413" stroke-width="2"/>
+  <rect x="382" y="196" width="84" height="68" rx="4" fill="#FAF8F4" stroke="#141413" stroke-width="1.5"/>
+</svg>
