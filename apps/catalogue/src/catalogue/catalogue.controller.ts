@@ -74,11 +74,12 @@ export class CatalogueController {
   @ApiOperation({ summary: 'Serve a product image' })
   async image(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Res({ passthrough: true }) response: Response,
+    @Res() response: Response,
   ) {
     const image = await this.catalogue.getImage(id);
     response.setHeader('Content-Type', image.contentType);
-    return image.data;
+    response.setHeader('Content-Length', image.data.length);
+    response.send(image.data);
   }
 
   @ApiBearerAuth()
