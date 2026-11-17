@@ -15,13 +15,23 @@ const REGIONS = [
   'Kilimanjaro', 'Zanzibar Urban/West', 'Pemba North', 'Other',
 ];
 
+const MOBILE_MONEY_PAYMENT_CODES = ['MPESA', 'AIRTEL_MONEY', 'MIXX_BY_YAS'];
+
+function allowedPaymentCodes(deliveryMethod: 'SELLER_DELIVERY' | 'PICKUP'): Set<string> {
+  return new Set(
+    deliveryMethod === 'PICKUP'
+      ? ['PAY_ON_PICKUP', ...MOBILE_MONEY_PAYMENT_CODES]
+      : ['CASH_ON_DELIVERY', ...MOBILE_MONEY_PAYMENT_CODES],
+  );
+}
+
 export function CheckoutPage() {
   const { user, authRequest } = useAuth();
   const cart = useCart();
   const navigate = useNavigate();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loadingMethods, setLoadingMethods] = useState(true);
-  const [deliveryMethod, setDeliveryMethod] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
+  const [deliveryMethod, setDeliveryMethod] = useState<'SELLER_DELIVERY' | 'PICKUP'>('SELLER_DELIVERY');
   const [contactName, setContactName] = useState(user?.fullName ?? '');
   const [contactPhone, setContactPhone] = useState(user?.phone ?? '');
   const [region, setRegion] = useState('Dar es Salaam');
@@ -51,6 +61,13 @@ export function CheckoutPage() {
       .finally(() => setLoadingMethods(false));
   }, []);
 
+  useEffect(() => {
+    const allowed = allowedPaymentCodes(deliveryMethod);
+    if (methods.length === 0 || allowed.has(paymentMethodCode)) return;
+    const replacement = methods.find((method) => allowed.has(method.code));
+    if (replacement) setPaymentMethodCode(replacement.code);
+  }, [deliveryMethod, methods, paymentMethodCode]);
+
   if (cart.items.length === 0) {
     return (
       <section className="page-wrap narrow-page">
@@ -61,7 +78,10 @@ export function CheckoutPage() {
     );
   }
 
-  const selectedMethod = methods.find((method) => method.code === paymentMethodCode);
+  const visibleMethods = methods.filter((method) =>
+    allowedPaymentCodes(deliveryMethod).has(method.code),
+  );
+  const selectedMethod = visibleMethods.find((method) => method.code === paymentMethodCode);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,8 +91,16 @@ export function CheckoutPage() {
       setError('Choose a payment method.');
       return;
     }
-    if (deliveryMethod === 'DELIVERY' && (!region || !district.trim() || !addressLine.trim())) {
-      setError('Enter the region, district and delivery address for a delivery order.');
+    if (!allowedPaymentCodes(deliveryMethod).has(paymentMethodCode)) {
+      setError(
+        deliveryMethod === 'PICKUP'
+          ? 'Choose a payment method available for campus pickup.'
+          : 'Choose a payment method available for seller-arranged delivery.',
+      );
+      return;
+    }
+    if (deliveryMethod === 'SELLER_DELIVERY' && (!region || !district.trim() || !addressLine.trim())) {
+      setError('Enter the region, district and delivery address for a seller-delivered order.');
       return;
     }
     setPending(true);
@@ -83,7 +111,7 @@ export function CheckoutPage() {
       contactPhone: contactPhone.trim(),
       paymentMethodCode,
       idempotencyKey,
-      ...(deliveryMethod === 'DELIVERY'
+      ...(deliveryMethod === 'SELLER_DELIVERY'
         ? { region, district: district.trim(), addressLine: addressLine.trim() }
         : {}),
       ...(landmark.trim() ? { landmark: landmark.trim() } : {}),
@@ -114,7 +142,7 @@ export function CheckoutPage() {
         <div>
           <p className="eyebrow">CHECKOUT</p>
           <h1>Complete your order</h1>
-          <p className="muted">Confirm delivery details and choose how you will pay.</p>
+          <p className="muted">Choose campus pickup or seller-arranged delivery, then how you will pay.</p>
         </div>
         <Link className="text-link" to="/cart">Back to cart</Link>
       </div>
@@ -146,12 +174,12 @@ export function CheckoutPage() {
                   <input
                     type="radio"
                     name="deliveryMethod"
-                    value="DELIVERY"
-                    checked={deliveryMethod === 'DELIVERY'}
-                    onChange={() => setDeliveryMethod('DELIVERY')}
+                    value="SELLER_DELIVERY"
+                    checked={deliveryMethod === 'SELLER_DELIVERY'}
+                    onChange={() => setDeliveryMethod('SELLER_DELIVERY')}
                   />
                   <Truck size={16} />
-                  <span>Deliver to me</span>
+                  <span>Seller-arranged delivery</span>
                 </label>
                 <label>
                   <input
@@ -162,7 +190,7 @@ export function CheckoutPage() {
                     onChange={() => setDeliveryMethod('PICKUP')}
                   />
                   <Store size={16} />
-                  <span>Pick up from seller</span>
+                  <span>Campus pickup</span>
                 </label>
               </div>
 
@@ -185,7 +213,7 @@ export function CheckoutPage() {
                   value={contactPhone}
                   onChange={(event) => setContactPhone(event.target.value)}
                 />
-                {deliveryMethod === 'DELIVERY' && (
+                {deliveryMethod === 'SELLER_DELIVERY' && (
                   <>
                     <label className="field">
                       <span>Region</span>
@@ -238,12 +266,17 @@ export function CheckoutPage() {
               </div>
             </header>
             <div className="checkout-step-body">
-              <p className="muted">Only methods the seller can currently honour are shown.</p>
+              <p className="muted">
+                Only cash and approved mobile money methods are shown. SokoLink settles with sellers
+                after fulfilment.
+              </p>
               {loadingMethods ? (
                 <LoadingState label="Loading payment methods" />
+              ) : visibleMethods.length === 0 ? (
+                <p className="muted">No compatible payment methods are currently configured.</p>
               ) : (
                 <div className="payment-methods">
-                  {methods.map((method) => (
+                  {visibleMethods.map((method) => (
                     <label className={'payment-method' + (paymentMethodCode === method.code ? ' selected' : '')} key={method.code}>
                       <input
                         type="radio"
@@ -303,7 +336,7 @@ export function CheckoutPage() {
           <button className="button button-primary full-width" type="submit" disabled={pending || loadingMethods}>
             {pending ? 'Placing order…' : 'Place order'}
           </button>
-          <p className="secure-note"><ShieldCheck size={14} /> Your order is recorded as awaiting payment. Sellers confirm cash or pickup payment directly with you.</p>
+          <p className="secure-note"><ShieldCheck size={14} /> SokoLink records your payment and settles with the seller after fulfilment. For cash orders the seller confirms payment on handover.</p>
         </aside>
       </form>
     </section>

@@ -22,6 +22,12 @@ enum RoleName {
   SUPER_ADMIN
 }
 
+enum CustomerCategory {
+  UNKNOWN
+  STUDENT
+  STAFF
+}
+
 enum VerificationChannel {
   EMAIL
   PHONE
@@ -33,21 +39,24 @@ enum VerificationPurpose {
 }
 
 model User {
-  id               String     @id @default(uuid()) @db.Uuid
-  fullName         String     @db.VarChar(160)
-  email            String     @db.VarChar(254)
-  emailNormalized  String     @unique @db.VarChar(254)
-  phone            String     @db.VarChar(32)
-  phoneNormalized  String     @unique @db.VarChar(20)
-  passwordHash     String     @db.VarChar(255)
-  status           UserStatus @default(PENDING_VERIFICATION)
-  emailVerifiedAt  DateTime?  @db.Timestamptz(3)
-  phoneVerifiedAt  DateTime?  @db.Timestamptz(3)
-  failedLoginCount Int        @default(0)
-  lockedUntil      DateTime?  @db.Timestamptz(3)
-  lastLoginAt      DateTime?  @db.Timestamptz(3)
-  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
+  id                        String           @id @default(uuid()) @db.Uuid
+  fullName                  String           @db.VarChar(160)
+  email                     String           @db.VarChar(254)
+  emailNormalized           String           @unique @db.VarChar(254)
+  phone                     String           @db.VarChar(32)
+  phoneNormalized           String           @unique @db.VarChar(20)
+  passwordHash              String           @db.VarChar(255)
+  status                    UserStatus       @default(PENDING_VERIFICATION)
+  customerCategory          CustomerCategory @default(UNKNOWN)
+  institution               String?          @db.VarChar(160)
+  studentRegistrationNumber String?          @db.VarChar(64)
+  emailVerifiedAt           DateTime?        @db.Timestamptz(3)
+  phoneVerifiedAt           DateTime?        @db.Timestamptz(3)
+  failedLoginCount          Int              @default(0)
+  lockedUntil               DateTime?        @db.Timestamptz(3)
+  lastLoginAt               DateTime?        @db.Timestamptz(3)
+  createdAt                 DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime         @updatedAt @db.Timestamptz(3)
 
   roles              UserRole[]
   sessions           RefreshSession[]

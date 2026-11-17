@@ -29,6 +29,17 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Cancelled',
 };
 
+export const DELIVERY_METHOD_LABELS: Record<string, string> = {
+  PICKUP: 'Campus pickup',
+  SELLER_DELIVERY: 'Seller-arranged delivery',
+  DELIVERY: 'Seller-arranged delivery',
+};
+
+export function deliveryMethodLabel(method: string | null | undefined): string {
+  if (!method) return 'Not specified';
+  return DELIVERY_METHOD_LABELS[method] ?? method;
+}
+
 export function statusTone(status: string): string {
   if (status === 'DELIVERED' || status === 'APPROVED' || status === 'ACTIVE' || status === 'PAID') return 'badge-success';
   if (status === 'CANCELLED' || status === 'REJECTED' || status === 'FAILED') return 'badge-danger';

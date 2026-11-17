@@ -1,4 +1,4 @@
-import type { RoleName, UserStatus } from '@prisma/client';
+import type { CustomerCategory, RoleName, UserStatus } from '@prisma/client';
 
 export interface UserSummary {
   id: string;
@@ -6,6 +6,9 @@ export interface UserSummary {
   email: string;
   phone: string;
   status: UserStatus;
+  customerCategory: CustomerCategory;
+  institution: string | null;
+  studentRegistrationNumber: string | null;
   emailVerified: boolean;
   phoneVerified: boolean;
   roles: RoleName[];

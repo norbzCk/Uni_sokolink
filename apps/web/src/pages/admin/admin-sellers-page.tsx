@@ -82,6 +82,10 @@ export function AdminSellersPage() {
                   <h2>{application.businessName}</h2>
                   <p className="muted">{application.businessCategory} · {application.district}, {application.region}</p>
                   <p className="muted">Submitted {formatDate(application.submittedAt)} · {application.phone}</p>
+                  <p className="muted">
+                    {application.institution} · {application.studentRegistrationNumber} · Evidence:{' '}
+                    {application.evidenceReference}
+                  </p>
                 </div>
                 <span className={'badge ' + statusTone(application.status)}>{application.status}</span>
               </div>

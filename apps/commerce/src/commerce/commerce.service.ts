@@ -12,6 +12,13 @@ import { loadEnvironment } from '../environment';
 import type { ServiceUser } from '@sokolink/platform';
 import type { CreateOrderDto, SellerOrdersQuery, UpdateSellerOrderStatusDto } from './commerce.dto';
 
+const MOBILE_MONEY_PAYMENT_CODES = ['MPESA', 'AIRTEL_MONEY', 'MIXX_BY_YAS'];
+const SELLER_DELIVERY_PAYMENT_CODES = new Set([
+  'CASH_ON_DELIVERY',
+  ...MOBILE_MONEY_PAYMENT_CODES,
+]);
+const PICKUP_PAYMENT_CODES = new Set(['PAY_ON_PICKUP', ...MOBILE_MONEY_PAYMENT_CODES]);
+
 type ProductSnapshot = {
   id: string;
   sellerId: string;
@@ -45,15 +52,16 @@ export class CommerceService {
       return this.presentOrder(existing);
     }
 
-    if (dto.deliveryMethod === 'DELIVERY') {
+    if (dto.deliveryMethod === 'SELLER_DELIVERY') {
       if (!dto.region?.trim() || !dto.district?.trim() || !dto.addressLine?.trim()) {
         throw new BadRequestException({
           code: 'DELIVERY_ADDRESS_REQUIRED',
-          message: 'Enter the region, district and delivery address for a delivery order.',
+          message: 'Enter the region, district and delivery address for a seller-delivered order.',
           fieldErrors: { addressLine: 'Enter the region, district and delivery address.' },
         });
       }
     }
+    this.assertPaymentMethodForDelivery(dto.deliveryMethod, dto.paymentMethodCode);
 
     const merged = new Map<string, number>();
     for (const item of dto.items) {
@@ -471,6 +479,25 @@ export class CommerceService {
     }
     const body = (await response.json()) as { items?: ProductSnapshot[] };
     return body.items ?? [];
+  }
+
+  private assertPaymentMethodForDelivery(
+    deliveryMethod: CreateOrderDto['deliveryMethod'],
+    paymentMethodCode: string,
+  ): void {
+    const allowed =
+      deliveryMethod === 'PICKUP' ? PICKUP_PAYMENT_CODES : SELLER_DELIVERY_PAYMENT_CODES;
+    if (!allowed.has(paymentMethodCode)) {
+      const message =
+        deliveryMethod === 'PICKUP'
+          ? 'Choose a payment method available for campus pickup.'
+          : 'Choose a payment method available for seller-arranged delivery.';
+      throw new BadRequestException({
+        code: 'PAYMENT_METHOD_NOT_ALLOWED_FOR_DELIVERY',
+        message,
+        fieldErrors: { paymentMethodCode: message },
+      });
+    }
   }
 
   private async validatePaymentMethod(code: string): Promise<{ code: string; name: string }> {

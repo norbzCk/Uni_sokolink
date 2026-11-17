@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import type {
 } from './seller.dto';
 
 const SELLER_ROLE = 'SELLER';
+const IFM_INSTITUTION = 'IFM';
 
 function slugify(value: string): string {
   return value
@@ -66,6 +68,8 @@ export class SellerService {
         message: 'Your seller application is already waiting for review.',
       });
     }
+    this.assertIfmEvidence(dto);
+    await this.assertIdentitySellerEligibility(userId);
     return this.prisma.sellerApplication.upsert({
       where: { userId },
       create: { userId, ...dto, status: 'PENDING', submittedAt: new Date() },
@@ -114,6 +118,8 @@ export class SellerService {
       return this.presentApplication(application);
     }
 
+    this.assertIfmEvidence(application);
+    await this.assertIdentitySellerEligibility(application.userId);
     await this.grantSellerRole(application.userId);
 
     const slug = await this.availableSlug(application.businessName, application.userId);
@@ -130,6 +136,7 @@ export class SellerService {
           description: application.description,
           slug,
           status: 'ACTIVE',
+          verified: true,
         },
         update: {
           businessName: application.businessName,
@@ -139,6 +146,7 @@ export class SellerService {
           phone: application.phone,
           description: application.description,
           status: 'ACTIVE',
+          verified: true,
         },
       }),
       this.prisma.sellerApplication.update({
@@ -241,7 +249,7 @@ export class SellerService {
 
   async listPublicStorefronts() {
     const profiles = await this.prisma.sellerProfile.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', verified: true },
       orderBy: { createdAt: 'desc' },
       take: 24,
     });
@@ -249,7 +257,9 @@ export class SellerService {
   }
 
   async getPublicStorefront(slug: string) {
-    const profile = await this.prisma.sellerProfile.findUnique({ where: { slug } });
+    const profile = await this.prisma.sellerProfile.findFirst({
+      where: { slug, status: 'ACTIVE', verified: true },
+    });
     if (!profile) {
       throw new NotFoundException({
         code: 'STOREFRONT_NOT_FOUND',
@@ -292,6 +302,60 @@ export class SellerService {
     return base.slice(0, 120) + '-' + randomBytes(3).toString('hex');
   }
 
+  private assertIfmEvidence(details: {
+    institution: string;
+    studentRegistrationNumber: string;
+    evidenceReference: string;
+  }): void {
+    if (
+      details.institution !== IFM_INSTITUTION ||
+      !details.studentRegistrationNumber?.trim() ||
+      !details.evidenceReference?.trim()
+    ) {
+      throw new ForbiddenException({
+        code: 'IFM_EVIDENCE_REQUIRED',
+        message: 'Provide your IFM institution, student registration number and evidence reference.',
+        fieldErrors: {
+          institution: 'Only IFM students can apply to sell at launch.',
+          studentRegistrationNumber: 'Enter your student registration number.',
+          evidenceReference: 'Enter an evidence reference for manual review.',
+        },
+      });
+    }
+  }
+
+  private async assertIdentitySellerEligibility(userId: string): Promise<void> {
+    const env = loadEnvironment();
+    let response: Response;
+    try {
+      response = await fetch(
+        env.IDENTITY_SERVICE_URL + '/api/v1/internal/users/' + userId + '/seller-eligibility',
+        {
+          headers: { 'x-internal-token': env.INTERNAL_SERVICE_TOKEN },
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+    } catch {
+      throw new BadGatewayException({
+        code: 'IDENTITY_UNAVAILABLE',
+        message: 'Seller eligibility could not be checked because identity is unavailable.',
+      });
+    }
+    if (!response.ok) {
+      throw new BadGatewayException({
+        code: 'SELLER_ELIGIBILITY_UNAVAILABLE',
+        message: 'Seller eligibility could not be checked. Try again shortly.',
+      });
+    }
+    const result = (await response.json()) as { eligible?: boolean; reason?: string };
+    if (!result.eligible) {
+      throw new ForbiddenException({
+        code: 'SELLER_INELIGIBLE',
+        message: result.reason ?? 'This account is not eligible to sell at launch.',
+      });
+    }
+  }
+
   private async grantSellerRole(userId: string): Promise<void> {
     const env = loadEnvironment();
     let response: Response;
@@ -330,6 +394,9 @@ export class SellerService {
     region: string;
     district: string;
     phone: string;
+    institution: string;
+    studentRegistrationNumber: string;
+    evidenceReference: string;
     description: string;
     status: string;
     rejectionReason: string | null;
@@ -346,6 +413,9 @@ export class SellerService {
       region: application.region,
       district: application.district,
       phone: application.phone,
+      institution: application.institution,
+      studentRegistrationNumber: application.studentRegistrationNumber,
+      evidenceReference: application.evidenceReference,
       description: application.description,
       status: application.status,
       rejectionReason: application.rejectionReason,
@@ -370,6 +440,7 @@ export class SellerService {
       description: string;
       logoContentType: string | null;
       status: string;
+      verified: boolean;
       createdAt: Date;
       updatedAt: Date;
     },
@@ -388,7 +459,7 @@ export class SellerService {
       description: profile.description,
       logoUrl: profile.logoContentType ? '/seller/storefronts/' + profile.id + '/logo' : null,
       status: profile.status,
-      verified: true,
+      verified: profile.verified,
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),
     };

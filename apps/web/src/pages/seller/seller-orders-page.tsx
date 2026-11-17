@@ -5,7 +5,13 @@ import type { OrderStatus, SellerOrder } from '../../api/marketplace';
 import { useAuth } from '../../auth/auth-context';
 import { Alert } from '../../components/alert';
 import { ErrorState, LoadingState } from '../../components/async-state';
-import { formatDateTime, formatTzs, ORDER_STATUS_LABELS, statusTone } from '../../lib/format';
+import {
+  deliveryMethodLabel,
+  formatDateTime,
+  formatTzs,
+  ORDER_STATUS_LABELS,
+  statusTone,
+} from '../../lib/format';
 import { useApi } from '../../lib/use-api';
 
 const FILTERS: Array<{ value: string; label: string }> = [
@@ -101,9 +107,13 @@ export function SellerOrdersPage() {
                   <h3>Buyer</h3>
                   <p>{order.order?.contactName} · {order.order?.contactPhone}</p>
                   <p className="muted">
-                    {order.order?.deliveryMethod === 'DELIVERY'
-                      ? [order.order.addressLine, order.order.district, order.order.region].filter(Boolean).join(', ')
-                      : 'Pickup from your location'}
+                    {deliveryMethodLabel(order.order?.deliveryMethod)}
+                    {' · '}
+                    {order.order?.deliveryMethod === 'PICKUP'
+                      ? 'Arrange collection with the buyer'
+                      : [order.order?.addressLine, order.order?.district, order.order?.region]
+                          .filter(Boolean)
+                          .join(', ')}
                   </p>
                   {order.order?.landmark && <p className="muted">Landmark: {order.order.landmark}</p>}
                   {order.order?.notes && <p className="muted">Notes: {order.order.notes}</p>}

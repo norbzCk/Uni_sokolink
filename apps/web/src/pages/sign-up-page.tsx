@@ -18,6 +18,9 @@ export function SignUpPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [customerCategory, setCustomerCategory] = useState<'STUDENT' | 'STAFF'>('STUDENT');
+  const [institution, setInstitution] = useState('IFM');
+  const [studentRegistrationNumber, setStudentRegistrationNumber] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +44,11 @@ export function SignUpPage() {
         fullName,
         email,
         phone,
+        customerCategory,
+        institution: institution.trim(),
+        ...(customerCategory === 'STUDENT'
+          ? { studentRegistrationNumber: studentRegistrationNumber.trim() }
+          : {}),
         password,
         passwordConfirmation,
       });
@@ -97,8 +105,8 @@ export function SignUpPage() {
       <p className="eyebrow">CREATE YOUR ACCOUNT</p>
       <h1>Start with a customer account.</h1>
       <p className="muted">
-        You can apply to sell later. Seller access is only granted after an administrator reviews
-        your application.
+        Students and university staff can shop. IFM students can apply to sell later, after an
+        administrator reviews their evidence.
       </p>
       <form onSubmit={submit} noValidate>
         {error && (
@@ -140,6 +148,45 @@ export function SignUpPage() {
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
         />
+        <label className="field">
+          <span>Account type</span>
+          <select
+            name="customerCategory"
+            value={customerCategory}
+            onChange={(event) => {
+              const next = event.target.value as 'STUDENT' | 'STAFF';
+              setCustomerCategory(next);
+              setInstitution(next === 'STUDENT' ? 'IFM' : '');
+              setStudentRegistrationNumber('');
+            }}
+            required
+          >
+            <option value="STUDENT">Student</option>
+            <option value="STAFF">University staff</option>
+          </select>
+          <small className="field-hint">Students and university staff can shop on SokoLink.</small>
+        </label>
+        <FormField
+          label={customerCategory === 'STUDENT' ? 'Institution' : 'University or department'}
+          name="institution"
+          minLength={2}
+          maxLength={160}
+          required
+          value={institution}
+          onChange={(event) => setInstitution(event.target.value)}
+        />
+        {customerCategory === 'STUDENT' && (
+          <FormField
+            label="Student registration number"
+            name="studentRegistrationNumber"
+            minLength={3}
+            maxLength={64}
+            required
+            hint="Used to verify IFM student seller applications."
+            value={studentRegistrationNumber}
+            onChange={(event) => setStudentRegistrationNumber(event.target.value)}
+          />
+        )}
         <FormField
           label="Password"
           name="password"

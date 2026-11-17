@@ -18,6 +18,9 @@ export interface User {
   email: string;
   phone: string;
   status: 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  customerCategory: 'UNKNOWN' | 'STUDENT' | 'STAFF';
+  institution: string | null;
+  studentRegistrationNumber: string | null;
   emailVerified: boolean;
   phoneVerified: boolean;
   roles: Role[];
@@ -34,6 +37,9 @@ interface RegistrationInput {
   fullName: string;
   email: string;
   phone: string;
+  customerCategory: 'STUDENT' | 'STAFF';
+  institution: string;
+  studentRegistrationNumber?: string;
   password: string;
   passwordConfirmation: string;
 }

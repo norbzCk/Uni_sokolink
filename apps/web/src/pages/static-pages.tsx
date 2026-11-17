@@ -63,9 +63,8 @@ export function HelpPage() {
           <Truck size={22} className="info-icon" />
           <h2>Delivery and pickup</h2>
           <p className="muted">
-            Choose delivery to your address or pick up directly from the seller. Delivery fees are
-            confirmed with the seller before dispatch. Campus pickup points are available for
-            selected stores.
+            Choose seller-arranged delivery or campus pickup. Delivery fees and pickup points are
+            confirmed with the seller before fulfilment. Partner delivery is not available in the MVP.
           </p>
           <Link className="text-link" to="/campus">See campus pickup →</Link>
         </article>
@@ -73,9 +72,9 @@ export function HelpPage() {
           <Wallet size={22} className="info-icon" />
           <h2>Fees and payments</h2>
           <p className="muted">
-            SokoLink currently supports cash on delivery and pay on pickup. Online card and mobile
-            money payments are being rolled out. You will always see the amount due before placing
-            an order.
+            SokoLink supports cash on delivery, pay on pickup and approved mobile money methods.
+            SokoLink records payments and settles with sellers after fulfilment. Card and bank
+            payments are not available in the MVP.
           </p>
         </article>
         <article className="account-card" id="refunds">
@@ -91,8 +90,9 @@ export function HelpPage() {
           <Store size={22} className="info-icon" />
           <h2>Selling on SokoLink</h2>
           <p className="muted">
-            Apply for a seller account, complete verification and list your products. Every listing
-            is reviewed before it appears in the marketplace.
+            IFM students can apply with their student evidence and storefront details. Approved
+            sellers can list products, and every listing is reviewed before it appears in the
+            marketplace.
           </p>
           <Link className="text-link" to="/sell">Start selling →</Link>
         </article>
@@ -161,8 +161,8 @@ export function PoliciesPage() {
         <h2>Refunds and returns</h2>
         <p className="muted">
           Buyers should contact the seller within 7 days of delivery. Items must be unused and in
-          their original packaging unless they arrived damaged or incorrect. Refunds are handled by
-          the seller and may be completed in cash or by the original payment method.
+          their original packaging unless they arrived damaged or incorrect. SokoLink coordinates
+          refunds with the seller and records the outcome against the original payment.
         </p>
       </article>
       <article className="account-card">
@@ -216,7 +216,7 @@ export function CampusPage() {
         <article>
           <span className="step-number">01</span>
           <h3>Choose pickup</h3>
-          <p>Select “Pick up from seller” at checkout instead of delivery.</p>
+          <p>            Select “Campus pickup” at checkout instead of seller-arranged delivery.</p>
         </article>
         <article>
           <span className="step-number">02</span>

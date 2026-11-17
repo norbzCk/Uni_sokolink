@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { RoleName, UserStatus } from '@prisma/client';
+import type { CustomerCategory, RoleName, UserStatus } from '@prisma/client';
 
 export class UserResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -16,6 +16,15 @@ export class UserResponseDto {
 
   @ApiProperty({ enum: ['PENDING_VERIFICATION', 'ACTIVE', 'SUSPENDED', 'DISABLED'] })
   status!: UserStatus;
+
+  @ApiProperty({ enum: ['UNKNOWN', 'STUDENT', 'STAFF'] })
+  customerCategory!: CustomerCategory;
+
+  @ApiProperty({ nullable: true })
+  institution!: string | null;
+
+  @ApiProperty({ nullable: true })
+  studentRegistrationNumber!: string | null;
 
   @ApiProperty()
   emailVerified!: boolean;

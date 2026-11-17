@@ -91,6 +91,9 @@ async function main() {
     fullName: 'Amina User',
     email,
     phone,
+    customerCategory: 'STUDENT',
+    institution: 'IFM',
+    studentRegistrationNumber: '2024/12345',
     password: initialPassword,
     passwordConfirmation: initialPassword,
   };

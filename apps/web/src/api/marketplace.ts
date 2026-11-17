@@ -81,6 +81,9 @@ export interface SellerApplication {
   region: string;
   district: string;
   phone: string;
+  institution: string;
+  studentRegistrationNumber: string;
+  evidenceReference: string;
   description: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   rejectionReason: string | null;
@@ -122,9 +125,11 @@ export interface PaymentMethod {
   code: string;
   name: string;
   description: string;
-  kind: 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CARD';
+  kind: 'CASH' | 'MOBILE_MONEY';
   instructions: string | null;
 }
+
+export type DeliveryMethod = 'PICKUP' | 'SELLER_DELIVERY' | 'DELIVERY';
 
 export type OrderStatus =
   | 'PLACED'
@@ -160,7 +165,7 @@ export interface SellerOrder {
     buyerName: string;
     contactName: string;
     contactPhone: string;
-    deliveryMethod: 'DELIVERY' | 'PICKUP';
+    deliveryMethod: DeliveryMethod;
     region: string | null;
     district: string | null;
     addressLine: string | null;
@@ -182,7 +187,7 @@ export interface Order {
   paymentStatus: string;
   paymentMethodCode: string;
   paymentMethodName: string;
-  deliveryMethod: 'DELIVERY' | 'PICKUP';
+  deliveryMethod: DeliveryMethod;
   contactName: string;
   contactPhone: string;
   region: string | null;
@@ -221,7 +226,7 @@ export interface Payment {
   currency: string;
   methodCode: string;
   methodName: string;
-  kind: 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CARD';
+  kind: 'CASH' | 'MOBILE_MONEY';
   status: 'PENDING' | 'PENDING_CONFIRMATION' | 'PAID' | 'FAILED' | 'REFUNDED';
   instructions: string | null;
   createdAt: string;
@@ -230,7 +235,7 @@ export interface Payment {
 
 export interface CheckoutInput {
   items: Array<{ productId: string; quantity: number }>;
-  deliveryMethod: 'DELIVERY' | 'PICKUP';
+  deliveryMethod: DeliveryMethod;
   contactName: string;
   contactPhone: string;
   region?: string;

@@ -65,6 +65,27 @@ export class AuthService {
         fieldErrors: { phone: 'Enter a valid phone number, for example +255 7xx xxx xxx.' },
       });
     }
+    if (dto.customerCategory !== 'STUDENT' && dto.customerCategory !== 'STAFF') {
+      throw new BadRequestException({
+        code: 'INVALID_CUSTOMER_CATEGORY',
+        message: 'Choose student or staff as your account type.',
+        fieldErrors: { customerCategory: 'Choose student or staff as your account type.' },
+      });
+    }
+    if (!dto.institution?.trim()) {
+      throw new BadRequestException({
+        code: 'INSTITUTION_REQUIRED',
+        message: 'Enter your institution or department.',
+        fieldErrors: { institution: 'Enter your institution or department.' },
+      });
+    }
+    if (dto.customerCategory === 'STUDENT' && !dto.studentRegistrationNumber?.trim()) {
+      throw new BadRequestException({
+        code: 'STUDENT_REGISTRATION_REQUIRED',
+        message: 'Enter your student registration number.',
+        fieldErrors: { studentRegistrationNumber: 'Enter your student registration number.' },
+      });
+    }
     if (dto.password !== dto.passwordConfirmation) {
       throw new BadRequestException({
         code: 'PASSWORD_MISMATCH',
@@ -87,6 +108,9 @@ export class AuthService {
 
     const emailNormalized = normalizeEmail(dto.email);
     const phoneNormalized = normalizePhone(dto.phone);
+    const institution = dto.institution.trim();
+    const studentRegistrationNumber =
+      dto.customerCategory === 'STUDENT' ? dto.studentRegistrationNumber?.trim() ?? null : null;
     await this.rateLimit.consume(
       'registration',
       [meta.ipAddress, emailNormalized],
@@ -118,6 +142,9 @@ export class AuthService {
             phoneNormalized,
             passwordHash,
             status: 'PENDING_VERIFICATION',
+            customerCategory: dto.customerCategory,
+            institution,
+            studentRegistrationNumber,
             roles: { create: { role: 'CUSTOMER' } },
           },
           include: { roles: true },
@@ -132,6 +159,9 @@ export class AuthService {
               email: created.email,
               phone: created.phone,
               roles: ['CUSTOMER'],
+              customerCategory: created.customerCategory,
+              institution: created.institution,
+              studentRegistrationNumber: created.studentRegistrationNumber,
             },
           },
         });
@@ -739,6 +769,9 @@ export class AuthService {
       email: user.email,
       phone: user.phone,
       status: user.status,
+      customerCategory: user.customerCategory,
+      institution: user.institution,
+      studentRegistrationNumber: user.studentRegistrationNumber,
       emailVerified: Boolean(user.emailVerifiedAt),
       phoneVerified: Boolean(user.phoneVerifiedAt),
       roles: this.rolesOf(user),

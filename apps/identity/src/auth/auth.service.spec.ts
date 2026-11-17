@@ -20,6 +20,9 @@ const persistedUser = {
   phoneNormalized: '+255712345678',
   passwordHash: 'stored-hash',
   status: 'ACTIVE',
+  customerCategory: 'STUDENT',
+  institution: 'IFM',
+  studentRegistrationNumber: '2024/12345',
   emailVerifiedAt: new Date('2026-01-01T00:00:00Z'),
   phoneVerifiedAt: null,
   failedLoginCount: 0,
@@ -88,6 +91,9 @@ const registration = {
   fullName: 'Amina Hassan',
   email: 'Amina@Example.com',
   phone: '0712 345 678',
+  customerCategory: 'STUDENT',
+  institution: 'IFM',
+  studentRegistrationNumber: '2024/12345',
   password: 'ValidPassword123',
   passwordConfirmation: 'ValidPassword123',
 };
@@ -135,6 +141,14 @@ describe('AuthService registration', () => {
     });
     expect(passwords.hash).not.toHaveBeenCalled();
     expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects student registration without a student registration number', async () => {
+    const { service, prisma } = build();
+    await expect(
+      service.register({ ...registration, studentRegistrationNumber: '' }, meta),
+    ).rejects.toMatchObject({ response: { code: 'STUDENT_REGISTRATION_REQUIRED' } });
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
   });
 
   it('rejects mismatched and weak passwords before touching the database', async () => {

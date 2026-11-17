@@ -40,6 +40,24 @@ export class SellerApplicationDto {
   @Matches(TANZANIA_PHONE, { message: 'Enter a Tanzanian phone number, for example +255712345678.' })
   phone!: string;
 
+  @ApiProperty({ enum: ['IFM'], example: 'IFM' })
+  @IsIn(['IFM'], {
+    message: 'At launch, only IFM students can apply to sell on SokoLink.',
+  })
+  institution!: 'IFM';
+
+  @ApiProperty({ minLength: 3, maxLength: 64, example: '2024/12345' })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(64)
+  studentRegistrationNumber!: string;
+
+  @ApiProperty({ minLength: 3, maxLength: 160, example: 'IFM-STUDENT-ID-12345' })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(160)
+  evidenceReference!: string;
+
   @ApiProperty({ example: 'We supply affordable kitchenware to students and families in Dar es Salaam.' })
   @IsString()
   @MinLength(20)

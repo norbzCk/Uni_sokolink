@@ -16,6 +16,9 @@ const EMPTY_FORM = {
   region: 'Dar es Salaam',
   district: '',
   phone: '',
+  institution: 'IFM',
+  studentRegistrationNumber: '',
+  evidenceReference: '',
   description: '',
 };
 
@@ -73,7 +76,8 @@ export function SellPage() {
           <p className="eyebrow">SELL ON SOKOLINK</p>
           <h1>Turn what you make into a storefront.</h1>
           <p>
-            Apply once. When an administrator approves your business, you can publish products, manage stock and fulfil orders.
+            IFM students can apply once. When an administrator verifies your evidence and approves
+            your business, you can publish products, manage stock and fulfil orders.
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" to="/help">Seller guide <ArrowRight size={15} /></Link>
@@ -109,7 +113,7 @@ export function SellPage() {
         <article className="account-card status-card sell-form">
           <span className="badge badge-warning">Seller access</span>
           <h2>Create an account to apply.</h2>
-          <p className="muted">Sign in with your university account to submit a seller application and track its review.</p>
+          <p className="muted">Sign in with your IFM student account to submit a seller application and track its review.</p>
           <div className="inline-actions">
             <Link className="button button-primary" to="/sign-up">Create account</Link>
             <Link className="button button-outline" to="/sign-in">Sign in</Link>
@@ -149,7 +153,10 @@ export function SellPage() {
       {user && (!application || application.status === 'REJECTED') && (
         <form className="account-card auth-form sell-form" onSubmit={submit}>
           <h2>{application ? 'Update and resubmit' : 'Seller application'}</h2>
-          <p className="muted">Tell us about your business. Most applications are reviewed within two working days.</p>
+          <p className="muted">
+            Seller access is limited to IFM students at launch. Add your student evidence so an
+            administrator can review it.
+          </p>
           {error && <Alert tone="error">{error}</Alert>}
           <FormField label="Business name" name="businessName" minLength={2} maxLength={160} required {...field('businessName')} />
           <FormField label="Business category" name="businessCategory" placeholder="Home & Kitchen" minLength={2} maxLength={120} required {...field('businessCategory')} />
@@ -158,6 +165,30 @@ export function SellPage() {
             <FormField label="District" name="district" minLength={2} maxLength={80} required {...field('district')} />
           </div>
           <FormField label="Business phone" name="phone" type="tel" placeholder="+255712345678" required {...field('phone')} />
+          <FormField
+            label="Institution"
+            name="institution"
+            readOnly
+            hint="Seller access is limited to IFM students at launch."
+            {...field('institution')}
+          />
+          <FormField
+            label="Student registration number"
+            name="studentRegistrationNumber"
+            minLength={3}
+            maxLength={64}
+            required
+            {...field('studentRegistrationNumber')}
+          />
+          <FormField
+            label="Evidence reference"
+            name="evidenceReference"
+            minLength={3}
+            maxLength={160}
+            hint="Student ID or enrolment letter reference for manual review."
+            required
+            {...field('evidenceReference')}
+          />
           <label className="field">
             <span>What will you sell?</span>
             <textarea

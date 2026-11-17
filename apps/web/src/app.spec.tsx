@@ -30,6 +30,9 @@ describe('web foundation', () => {
   it('renders the account creation form', async () => {
     render(<MemoryRouter initialEntries={['/sign-up']}><App /></MemoryRouter>);
     expect(await screen.findByRole('heading', { name: /start with a customer account/i }, { timeout: 15000 })).toBeTruthy();
+    expect(screen.getByLabelText(/account type/i)).toBeTruthy();
+    expect(screen.getByLabelText(/^institution$/i)).toBeTruthy();
+    expect(screen.getByLabelText(/student registration number/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /create account/i })).toBeTruthy();
   }, 20000);
 

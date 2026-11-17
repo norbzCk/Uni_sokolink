@@ -5,7 +5,13 @@ import type { Order, Payment } from '../api/marketplace';
 import { useAuth } from '../auth/auth-context';
 import { Alert } from '../components/alert';
 import { ErrorState, LoadingState } from '../components/async-state';
-import { formatDateTime, formatTzs, ORDER_STATUS_LABELS, statusTone } from '../lib/format';
+import {
+  deliveryMethodLabel,
+  formatDateTime,
+  formatTzs,
+  ORDER_STATUS_LABELS,
+  statusTone,
+} from '../lib/format';
 import { useApi } from '../lib/use-api';
 
 const STEPS = ['PLACED', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
@@ -123,9 +129,9 @@ export function OrderDetailPage() {
           <article className="account-card">
             <h2>Delivery details</h2>
             <dl className="detail-list">
-              <div><dt>Method</dt><dd>{current.deliveryMethod === 'DELIVERY' ? 'Delivery' : 'Pickup'}</dd></div>
+              <div><dt>Method</dt><dd>{deliveryMethodLabel(current.deliveryMethod)}</dd></div>
               <div><dt>Contact</dt><dd>{current.contactName} · {current.contactPhone}</dd></div>
-              {current.deliveryMethod === 'DELIVERY' && (
+              {current.deliveryMethod !== 'PICKUP' && (
                 <div>
                   <dt>Address</dt>
                   <dd>{[current.addressLine, current.district, current.region].filter(Boolean).join(', ')}</dd>
@@ -140,7 +146,7 @@ export function OrderDetailPage() {
             <h2>Payment</h2>
             <p><strong>{current.paymentMethodName}</strong></p>
             <p className="muted">
-              {payment?.instructions ?? 'Settle payment directly with the seller when your order is delivered or collected.'}
+              {payment?.instructions ?? 'SokoLink records this payment and settles with the seller after fulfilment.'}
             </p>
             <div className="summary-row"><span>Status</span><span className={'badge ' + statusTone(current.paymentStatus)}>{current.paymentStatus}</span></div>
             <div className="summary-row"><span>Subtotal</span><span>{formatTzs(current.subtotalTzs)}</span></div>

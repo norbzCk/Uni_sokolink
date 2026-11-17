@@ -5,7 +5,13 @@ import type { OrderStatus, SellerOrder } from '../../api/marketplace';
 import { useAuth } from '../../auth/auth-context';
 import { Alert } from '../../components/alert';
 import { ErrorState, LoadingState } from '../../components/async-state';
-import { formatDateTime, formatTzs, ORDER_STATUS_LABELS, statusTone } from '../../lib/format';
+import {
+  deliveryMethodLabel,
+  formatDateTime,
+  formatTzs,
+  ORDER_STATUS_LABELS,
+  statusTone,
+} from '../../lib/format';
 import { useApi } from '../../lib/use-api';
 import { NEXT_ACTIONS } from './seller-orders-page';
 
@@ -94,9 +100,9 @@ export function SellerOrderDetailPage() {
               <div><dt>Contact</dt><dd>{current.order?.contactName} · {current.order?.contactPhone}</dd></div>
               <div>
                 <dt>Method</dt>
-                <dd>{current.order?.deliveryMethod === 'DELIVERY' ? 'Delivery' : 'Pickup'}</dd>
+                <dd>{deliveryMethodLabel(current.order?.deliveryMethod)}</dd>
               </div>
-              {current.order?.deliveryMethod === 'DELIVERY' && (
+              {current.order && current.order.deliveryMethod !== 'PICKUP' && (
                 <div>
                   <dt>Address</dt>
                   <dd>

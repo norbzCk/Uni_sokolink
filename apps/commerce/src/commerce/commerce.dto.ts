@@ -42,9 +42,9 @@ export class CreateOrderDto {
   @Type(() => CheckoutItemDto)
   items!: CheckoutItemDto[];
 
-  @ApiProperty({ enum: ['DELIVERY', 'PICKUP'] })
-  @IsIn(['DELIVERY', 'PICKUP'])
-  deliveryMethod!: 'DELIVERY' | 'PICKUP';
+  @ApiProperty({ enum: ['SELLER_DELIVERY', 'PICKUP'] })
+  @IsIn(['SELLER_DELIVERY', 'PICKUP'])
+  deliveryMethod!: 'SELLER_DELIVERY' | 'PICKUP';
 
   @ApiProperty({ example: 'Amina Hassan' })
   @IsString()

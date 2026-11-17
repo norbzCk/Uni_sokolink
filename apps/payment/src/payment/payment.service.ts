@@ -9,13 +9,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { PaymentMethodKind } from '../generated/prisma';
 import type { CreatePaymentDto } from './payment.dto';
 
+const ALLOWED_PAYMENT_KINDS: PaymentMethodKind[] = ['CASH', 'MOBILE_MONEY'];
+
 @Injectable()
 export class PaymentService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listPublicMethods() {
     const methods = await this.prisma.paymentMethod.findMany({
-      where: { enabled: true },
+      where: { enabled: true, kind: { in: ALLOWED_PAYMENT_KINDS } },
       orderBy: { sortOrder: 'asc' },
     });
     return methods.map((method) => ({
@@ -29,7 +31,7 @@ export class PaymentService {
 
   async validateMethod(code: string) {
     const method = await this.prisma.paymentMethod.findUnique({ where: { code } });
-    if (!method || !method.enabled) {
+    if (!method || !method.enabled || !ALLOWED_PAYMENT_KINDS.includes(method.kind)) {
       throw new BadRequestException({
         code: 'PAYMENT_METHOD_UNAVAILABLE',
         message: 'Choose an available payment method.',

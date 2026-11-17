@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { Banknote, CreditCard, ShieldCheck, Smartphone, Wallet } from 'lucide-react';
+import { Banknote, ShieldCheck, Smartphone, Wallet } from 'lucide-react';
 import type { Payment } from '../api/marketplace';
 import { useAuth } from '../auth/auth-context';
 import { ErrorState, LoadingState } from '../components/async-state';
@@ -9,7 +9,6 @@ import { useApi } from '../lib/use-api';
 function PaymentIcon({ kind }: { kind: string }) {
   if (kind === 'CASH') return <Banknote size={20} />;
   if (kind === 'MOBILE_MONEY') return <Smartphone size={20} />;
-  if (kind === 'CARD') return <CreditCard size={20} />;
   return <Wallet size={20} />;
 }
 
@@ -66,8 +65,9 @@ export function PaymentPage() {
         <div className="secure-note">
           <ShieldCheck size={15} />
           <span>
-            <strong>Pay the seller directly</strong>
-            Cash on delivery and pay-on-pickup are confirmed by the seller when you receive the order.
+            <strong>Payment recorded by SokoLink</strong>
+            SokoLink settles with sellers after fulfilment. Cash payments are confirmed by the seller
+            when you receive or collect the order.
           </span>
         </div>
         <Link className="button button-primary" to={'/orders/' + orderId}>View order</Link>

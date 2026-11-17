@@ -20,21 +20,24 @@ enum StorefrontStatus {
 }
 
 model SellerApplication {
-  id               String                 @id @default(uuid()) @db.Uuid
-  userId           String                 @unique @db.Uuid
-  businessName     String                 @db.VarChar(160)
-  businessCategory String                 @db.VarChar(120)
-  region           String                 @db.VarChar(80)
-  district         String                 @db.VarChar(80)
-  phone            String                 @db.VarChar(32)
-  description      String                 @db.Text
-  status           SellerApplicationStatus @default(PENDING)
-  rejectionReason  String?                @db.Text
-  submittedAt      DateTime               @default(now()) @db.Timestamptz(3)
-  reviewedAt       DateTime?              @db.Timestamptz(3)
-  reviewedBy       String?                @db.Uuid
-  createdAt        DateTime               @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime               @updatedAt @db.Timestamptz(3)
+  id                        String                  @id @default(uuid()) @db.Uuid
+  userId                    String                  @unique @db.Uuid
+  businessName              String                  @db.VarChar(160)
+  businessCategory          String                  @db.VarChar(120)
+  region                    String                  @db.VarChar(80)
+  district                  String                  @db.VarChar(80)
+  phone                     String                  @db.VarChar(32)
+  institution               String                  @default("UNKNOWN") @db.VarChar(160)
+  studentRegistrationNumber String                  @default("") @db.VarChar(64)
+  evidenceReference         String                  @default("") @db.VarChar(160)
+  description               String                  @db.Text
+  status                    SellerApplicationStatus @default(PENDING)
+  rejectionReason           String?                 @db.Text
+  submittedAt               DateTime                @default(now()) @db.Timestamptz(3)
+  reviewedAt                DateTime?               @db.Timestamptz(3)
+  reviewedBy                String?                 @db.Uuid
+  createdAt                 DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime                @updatedAt @db.Timestamptz(3)
 
   @@index([status, submittedAt])
 }
@@ -53,6 +56,7 @@ model SellerProfile {
   logoData         Bytes?
   logoContentType  String?          @db.VarChar(60)
   status           StorefrontStatus @default(ACTIVE)
+  verified         Boolean          @default(false)
   createdAt        DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
 

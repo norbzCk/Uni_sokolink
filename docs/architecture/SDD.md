@@ -131,12 +131,12 @@ The gateway is the public ingress. Each service still validates authentication, 
 | Service | Responsibilities | Owned data | Current status |
 | --- | --- | --- | --- |
 | API Gateway | Public routing, versioning, CORS, correlation, coarse rate limiting, OpenAPI ingress | No business database | Routing implemented for auth, users, seller, catalogue, inventory, orders, payment and fulfilment |
-| Identity and Access | Registration, verification, login, refresh rotation, sessions, roles, permissions, MFA, audit | `identity_db` | Implemented except MFA, admin user management and normalized role/permission administration |
-| Seller and Verification | Seller applications, IFM student evidence, review outcomes, storefront profile, storefront status | `seller_db` | Application, approval/rejection and storefront implemented; student evidence and review history incomplete |
+| Identity and Access | Registration, verification, login, refresh rotation, sessions, roles, permissions, MFA, audit | `identity_db` | Student/staff categories and seller eligibility projection implemented except MFA, admin user management and normalized role/permission administration |
+| Seller and Verification | Seller applications, IFM student evidence, review outcomes, storefront profile, storefront status | `seller_db` | Application, IFM evidence, eligibility gate, approval/rejection and verified storefronts implemented; review history incomplete |
 | Catalogue | Categories, products, variants, images, specifications, moderation, public discovery | `catalogue_db` | Implemented; variants, object storage and moderation history incomplete |
 | Inventory | On-hand stock, reservations, stock ledger, reconciliation, low-stock signals | `inventory_db` | Stock ledger, reserve/release/commit implemented; reservation expiry and reconciliation incomplete |
-| Commerce and Orders | Cart, checkout orchestration, parent orders, seller orders, order history, reviews, disputes | `commerce_db` | Parent/seller orders and status updates implemented; server cart, checkout saga, history, reviews and disputes incomplete |
-| Payment | Payment methods, payment intents, provider adapters, callback validation, transaction ledger, refunds, settlements | `payment_db` | Methods and payment records implemented; provider integration, callbacks, refunds and settlements incomplete |
+| Commerce and Orders | Cart, checkout orchestration, parent orders, seller orders, order history, reviews, disputes | `commerce_db` | Parent/seller orders, status updates, delivery allowlist and method compatibility implemented; server cart, checkout saga, history, reviews and disputes incomplete |
+| Payment | Payment methods, payment intents, provider adapters, callback validation, transaction ledger, refunds, settlements | `payment_db` | Cash/mobile-money method allowlist and payment records implemented; provider integration, callbacks, refunds and settlement ledger incomplete |
 | Fulfilment | Pickup, seller delivery, partner assignment later, proof of delivery, tracking | `fulfilment_db` | Placeholder |
 | Notifications | Email, in-app and SMS notifications, templates, preferences, delivery attempts | `notifications_db` | Placeholder |
 | Administration and Analytics | Moderation consoles, audit index, operational reporting, platform metrics | `admin_db` projection store, planned | Logical boundary; starts as admin APIs over owning services and a future projection service |
@@ -695,12 +695,12 @@ Mandatory negative tests:
 
 | Area | Implemented baseline | Required next work |
 | --- | --- | --- |
-| Identity | Registration, verification, login, refresh rotation, password recovery, RBAC, sessions, audit | MFA, admin user management, account status/admin actions, normalized permission administration, buyer eligibility policy |
-| Seller | Application, approval/rejection, role grant, storefront, logo | IFM student evidence, review cycles/history, suspension effects, resubmission audit |
+| Identity | Registration with student/staff categories, verification, login, refresh rotation, password recovery, RBAC, sessions, audit, internal seller eligibility projection | MFA, admin user management, account status/admin actions, normalized permission administration |
+| Seller | IFM evidence application, identity eligibility gate, approval/rejection, role grant, verified storefront, logo | Review cycles/history, suspension effects, resubmission audit |
 | Catalogue | Categories, products, images, specs, moderation, search/filter, related products | Variants, seller-status enforcement, object storage, moderation history, condition/in-stock server filters |
 | Inventory | Opening stock, adjustments, reserve/release/commit, movement ledger | Reservation expiry, reconciliation, low-stock events, stock projections |
-| Commerce | Parent order, seller orders, item snapshots, idempotency, seller status transitions | Server cart, checkout saga record, status history, target order states, delivery fees, reviews, disputes, admin monitoring |
-| Payment | Methods, payment record, COD seed, buyer payment view | Provider adapters, intent initiation, callbacks, transaction ledger, refunds, reconciliation, settlements |
+| Commerce | Parent order, seller orders, item snapshots, idempotency, seller status transitions, `PICKUP`/`SELLER_DELIVERY` allowlist, payment/delivery compatibility | Server cart, checkout saga record, status history, target order states, delivery fees, reviews, disputes, admin monitoring |
+| Payment | Cash/mobile-money method allowlist, payment record, COD seed, buyer payment view, platform settlement wording | Provider adapters, intent initiation, callbacks, transaction ledger, refunds, reconciliation, settlement ledger |
 | Fulfilment | Placeholder | Pickup/delivery records, seller flow, proof, tracking, admin oversight |
 | Notifications | Placeholder | Event consumers, email/in-app, preferences, delivery attempts |
 | Admin/analytics | Protected placeholder pages plus service admin endpoints | Projection store, audit index, reporting, explicit admin permissions |
