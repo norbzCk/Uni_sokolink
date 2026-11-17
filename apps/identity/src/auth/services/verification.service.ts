@@ -13,6 +13,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MailerService } from './mailer.service';
 import { SmsService } from './sms.service';
 import { TokenService } from './token.service';
+import { normalizeEmail } from '../validation';
 
 function invalidToken(message: string, code = 'INVALID_VERIFICATION_TOKEN'): BadRequestException {
   return new BadRequestException({ code, message });
@@ -31,32 +32,46 @@ export class VerificationService {
   async issueEmailVerification(user: User, purpose: VerificationPurpose): Promise<void> {
     await this.assertResendAllowed(user.id, 'EMAIL', purpose);
 
-    const token = this.tokens.createOpaqueToken();
-    const expiresAt = new Date(
-      Date.now() +
-        (purpose === 'PASSWORD_RESET'
-          ? this.environment.PASSWORD_RESET_TTL_MINUTES
-          : this.environment.EMAIL_VERIFICATION_TTL_MINUTES) *
-          60 *
-          1000,
-    );
+    if (purpose === 'PASSWORD_RESET') {
+      const token = this.tokens.createOpaqueToken();
+      const expiresAt = new Date(
+        Date.now() + this.environment.PASSWORD_RESET_TTL_MINUTES * 60 * 1000,
+      );
+      await this.prisma.verificationToken.create({
+        data: {
+          userId: user.id,
+          channel: 'EMAIL',
+          purpose,
+          tokenHash: this.tokens.hashToken(token),
+          expiresAt,
+          maxAttempts: 1,
+        },
+      });
+      await this.mailer.sendPasswordReset(user.email, user.fullName, token, expiresAt);
+      return;
+    }
 
-    await this.prisma.verificationToken.create({
+    await this.invalidateOutstanding(user.id, purpose, 'EMAIL');
+    const code = this.tokens.createOneTimeCode();
+    const expiresAt = new Date(
+      Date.now() + this.environment.EMAIL_VERIFICATION_TTL_MINUTES * 60 * 1000,
+    );
+    const record = await this.prisma.verificationToken.create({
       data: {
         userId: user.id,
         channel: 'EMAIL',
         purpose,
-        tokenHash: this.tokens.hashToken(token),
+        tokenHash: this.tokens.createOpaqueToken(),
         expiresAt,
-        maxAttempts: 1,
+        requestIp: null,
+        maxAttempts: 5,
       },
     });
-
-    if (purpose === 'PASSWORD_RESET') {
-      await this.mailer.sendPasswordReset(user.email, user.fullName, token, expiresAt);
-    } else {
-      await this.mailer.sendEmailVerification(user.email, user.fullName, token, expiresAt);
-    }
+    await this.prisma.verificationToken.update({
+      where: { id: record.id },
+      data: { tokenHash: this.tokens.hmac(`${record.id}:${code}`) },
+    });
+    await this.mailer.sendEmailVerification(user.email, user.fullName, code, expiresAt);
   }
 
   async issuePhoneVerification(user: User, meta: RequestMeta): Promise<void> {
@@ -94,73 +109,108 @@ export class VerificationService {
     }
   }
 
-  async verifyEmail(token: string, meta: RequestMeta): Promise<string> {
-    const tokenHash = this.tokens.hashToken(token);
-    const record = await this.prisma.verificationToken.findUnique({ where: { tokenHash } });
-    if (
-      !record ||
-      record.channel !== 'EMAIL' ||
-      record.purpose !== 'REGISTRATION' ||
-      record.consumedAt
-    ) {
-      throw invalidToken('This verification link is invalid or has already been used.');
+  async verifyEmail(email: string, code: string, meta: RequestMeta): Promise<string> {
+    const emailNormalized = normalizeEmail(email);
+    const user = await this.prisma.user.findUnique({ where: { emailNormalized } });
+    if (!user || user.emailVerifiedAt || user.status === 'SUSPENDED' || user.status === 'DISABLED') {
+      throw invalidToken('This verification code is invalid or has already been used.', 'INVALID_VERIFICATION_CODE');
+    }
+
+    const record = await this.prisma.verificationToken.findFirst({
+      where: {
+        userId: user.id,
+        channel: 'EMAIL',
+        purpose: 'REGISTRATION',
+        consumedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!record) {
+      throw invalidToken('Request a new verification code.', 'INVALID_VERIFICATION_CODE');
     }
     if (record.expiresAt <= new Date()) {
       throw invalidToken(
-        'This verification link has expired. Request a new verification email.',
+        'This verification code has expired. Request a new verification email.',
         'VERIFICATION_TOKEN_EXPIRED',
       );
+    }
+    if (record.attemptCount >= record.maxAttempts) {
+      throw invalidToken(
+        'Too many incorrect attempts. Request a new verification code.',
+        'VERIFICATION_ATTEMPTS_EXCEEDED',
+      );
+    }
+
+    if (!this.tokens.safeEqualHex(record.tokenHash, this.tokens.hmac(`${record.id}:${code}`))) {
+      const attempt = await this.prisma.verificationToken.updateMany({
+        where: {
+          id: record.id,
+          consumedAt: null,
+          attemptCount: { lt: record.maxAttempts },
+        },
+        data: { attemptCount: { increment: 1 } },
+      });
+      if (attempt.count !== 1) {
+        throw invalidToken(
+          'Too many incorrect attempts. Request a new verification code.',
+          'VERIFICATION_ATTEMPTS_EXCEEDED',
+        );
+      }
+      throw invalidToken('The verification code is incorrect.', 'INVALID_VERIFICATION_CODE');
     }
 
     return this.prisma.$transaction(async (transaction) => {
       const claimed = await transaction.verificationToken.updateMany({
-        where: { id: record.id, consumedAt: null, expiresAt: { gt: new Date() } },
+        where: {
+          id: record.id,
+          consumedAt: null,
+          attemptCount: { lt: record.maxAttempts },
+          expiresAt: { gt: new Date() },
+        },
         data: { consumedAt: new Date() },
       });
       if (claimed.count !== 1) {
-        throw invalidToken('This verification link is invalid or has already been used.');
+        throw invalidToken('This verification code is invalid or has already been used.', 'INVALID_VERIFICATION_CODE');
       }
 
-      const user = await transaction.user.findUniqueOrThrow({ where: { id: record.userId } });
-      if (user.status !== 'SUSPENDED' && user.status !== 'DISABLED') {
-        const updatedUser = await transaction.user.update({
-          where: { id: user.id },
-          data: {
-            emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
-            status: user.status === 'PENDING_VERIFICATION' ? 'ACTIVE' : user.status,
-          },
-        });
+      const currentUser = await transaction.user.findUniqueOrThrow({ where: { id: record.userId } });
+      const updatedUser = await transaction.user.update({
+        where: { id: currentUser.id },
+        data: {
+          emailVerifiedAt: currentUser.emailVerifiedAt ?? new Date(),
+          status: currentUser.status === 'PENDING_VERIFICATION' ? 'ACTIVE' : currentUser.status,
+        },
+      });
+      await transaction.outboxEvent.create({
+        data: {
+          type: 'user.email_verified',
+          version: 1,
+          correlationId: meta.correlationId,
+          payload: { userId: currentUser.id, email: currentUser.email, status: updatedUser.status },
+        },
+      });
+      if (currentUser.status === 'PENDING_VERIFICATION' && updatedUser.status === 'ACTIVE') {
         await transaction.outboxEvent.create({
           data: {
-            type: 'user.email_verified',
+            type: 'user.account_status_changed',
             version: 1,
             correlationId: meta.correlationId,
-            payload: { userId: user.id, email: user.email, status: updatedUser.status },
+            payload: { userId: currentUser.id, from: 'PENDING_VERIFICATION', to: 'ACTIVE' },
           },
         });
-        if (user.status === 'PENDING_VERIFICATION' && updatedUser.status === 'ACTIVE') {
-          await transaction.outboxEvent.create({
-            data: {
-              type: 'user.account_status_changed',
-              version: 1,
-              correlationId: meta.correlationId,
-              payload: { userId: user.id, from: 'PENDING_VERIFICATION', to: 'ACTIVE' },
-            },
-          });
-        }
       }
 
       await transaction.auditLog.create({
         data: {
-          actorId: user.id,
+          actorId: currentUser.id,
           action: 'identity.email.verified',
           targetType: 'user',
-          targetId: user.id,
+          targetId: currentUser.id,
           ipAddress: meta.ipAddress,
           correlationId: meta.correlationId,
         },
       });
-      return user.id;
+      return currentUser.id;
     });
   }
 

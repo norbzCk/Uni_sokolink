@@ -527,7 +527,7 @@ export class CatalogueService {
         rejectionReason: null,
       },
     });
-    return this.getProduct(id);
+    return this.getSellerProductForAdmin(id);
   }
 
   async adminRejectProduct(adminId: string, id: string, reason: string) {

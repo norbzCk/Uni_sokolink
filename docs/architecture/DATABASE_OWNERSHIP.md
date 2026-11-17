@@ -15,7 +15,7 @@ Every service is the only writer and reader of its owned operational data. Other
 | Commerce | `commerce_db` | cart, orders, suborders, saga, status history | Owns order lifecycle; references customer/product/seller IDs |
 | Payment | `payment_db` | intents, transactions, provider callback receipts, refunds, reconciliation | Order/payment reference; no order DB reads |
 | Fulfilment | `fulfilment_db` | delivery/pickup jobs, status, external tracking reference | Order and seller references, minimum delivery details |
-| Notifications | `notification_db` | inbox, preferences, attempts, template metadata | Consumes events with recipient references and minimal render data |
+| Notifications | `notifications_db` | inbox, preferences, attempts, template metadata | Consumes events with recipient references and minimal render data |
 | Administration | `admin_db` | reporting projections, moderation queues, admin action references | Event-fed read models; canonical audit action recorded by owning service |
 
 ## PostgreSQL deployment

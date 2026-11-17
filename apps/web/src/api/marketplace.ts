@@ -206,11 +206,11 @@ export interface SellerStats {
 }
 
 export interface CatalogueSellerStats {
-  draft: number;
-  pending: number;
-  approved: number;
-  rejected: number;
-  archived: number;
+  DRAFT: number;
+  PENDING: number;
+  APPROVED: number;
+  REJECTED: number;
+  ARCHIVED: number;
 }
 
 export interface Payment {
@@ -221,7 +221,8 @@ export interface Payment {
   currency: string;
   methodCode: string;
   methodName: string;
-  status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  kind: 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CARD';
+  status: 'PENDING' | 'PENDING_CONFIRMATION' | 'PAID' | 'FAILED' | 'REFUNDED';
   instructions: string | null;
   createdAt: string;
   updatedAt: string;

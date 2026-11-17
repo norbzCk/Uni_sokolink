@@ -34,7 +34,7 @@ export function CategoryDrawer({
           ))}
           <p className="drawer-section">For sellers</p>
           <Link to="/sell" onClick={onClose}>Sell on SokoLink</Link>
-          <Link to="/seller/dashboard" onClick={onClose}>Seller workspace</Link>
+          <Link to="/seller" onClick={onClose}>Seller workspace</Link>
           <p className="drawer-section">Help</p>
           <Link to="/help" onClick={onClose}>Help centre</Link>
           <Link to="/policies/refunds" onClick={onClose}>Refunds and returns</Link>

@@ -158,7 +158,7 @@ export class CommerceService {
         await this.createPayment(order.id, user.id, order.totalTzs, method.code);
       } catch {
         await this.prisma.order.delete({ where: { id: order.id } }).catch(() => undefined);
-        await this.releaseStock(requested, reference);
+        await this.releaseStock(requested, reference).catch(() => undefined);
         reserved = false;
         throw new BadGatewayException({
           code: 'PAYMENT_SETUP_FAILED',
@@ -556,12 +556,18 @@ export class CommerceService {
     reference: string,
   ): Promise<void> {
     const env = loadEnvironment();
-    await fetch(env.INVENTORY_SERVICE_URL + '/api/v1/inventory/internal/release', {
+    const response = await fetch(env.INVENTORY_SERVICE_URL + '/api/v1/inventory/internal/release', {
       method: 'POST',
       headers: this.internalHeaders(),
       body: JSON.stringify({ items, reference }),
       signal: AbortSignal.timeout(4000),
     }).catch(() => undefined);
+    if (!response?.ok) {
+      throw new BadGatewayException({
+        code: 'INVENTORY_UNAVAILABLE',
+        message: 'Reserved stock could not be released. Try again shortly.',
+      });
+    }
   }
 
   private async commitStock(

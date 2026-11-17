@@ -250,7 +250,7 @@ export class SellerService {
 
   async getPublicStorefront(slug: string) {
     const profile = await this.prisma.sellerProfile.findUnique({ where: { slug } });
-    if (!profile || profile.status !== 'ACTIVE') {
+    if (!profile) {
       throw new NotFoundException({
         code: 'STOREFRONT_NOT_FOUND',
         message: 'That seller storefront could not be found.',

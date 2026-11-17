@@ -180,7 +180,7 @@ export function SellerProductFormPage() {
           <h1>{editing ? 'Update your listing' : 'Create a listing'}</h1>
           <p className="muted">
             {editing
-              ? 'Changes to approved products return to review when submitted again.'
+              ? 'Saving changes to an approved product returns it to review.'
               : 'Save as a draft, then submit for administrator review.'}
           </p>
         </div>

@@ -2,11 +2,15 @@ import { IsEmail, IsString, Length, Matches, MaxLength, MinLength } from 'class-
 import { ApiProperty } from '@nestjs/swagger';
 
 export class VerifyEmailDto {
-  @ApiProperty({ minLength: 20, maxLength: 200 })
+  @ApiProperty({ format: 'email', maxLength: 254 })
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @ApiProperty({ pattern: '^\\d{6}$', example: '123456' })
   @IsString()
-  @MinLength(20)
-  @MaxLength(200)
-  token!: string;
+  @Matches(/^\d{6}$/, { message: 'code must be a six digit number' })
+  code!: string;
 }
 
 export class ResendEmailVerificationDto {

@@ -30,8 +30,8 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
 };
 
 export function statusTone(status: string): string {
-  if (status === 'DELIVERED' || status === 'APPROVED' || status === 'ACTIVE') return 'badge-success';
-  if (status === 'CANCELLED' || status === 'REJECTED') return 'badge-danger';
-  if (status === 'PENDING' || status === 'PLACED') return 'badge-warning';
+  if (status === 'DELIVERED' || status === 'APPROVED' || status === 'ACTIVE' || status === 'PAID') return 'badge-success';
+  if (status === 'CANCELLED' || status === 'REJECTED' || status === 'FAILED') return 'badge-danger';
+  if (status === 'PENDING' || status === 'PENDING_CONFIRMATION' || status === 'PLACED') return 'badge-warning';
   return 'badge-neutral';
 }

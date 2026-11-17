@@ -20,16 +20,21 @@ const EMPTY_FORM = {
 };
 
 export function SellPage() {
-  const { user, authRequest, refreshSession } = useAuth();
-  const status = useApi(() => authRequest<MySellerStatus>('/seller/applications/me'), []);
+  const { user, status: sessionStatus, authRequest, refreshSession } = useAuth();
+  const sellerStatus = useApi(
+    user ? () => authRequest<MySellerStatus>('/seller/applications/me') : null,
+    [user?.id],
+  );
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  if (!user) return null;
-  if (user.roles.includes('SELLER')) return <Navigate to="/seller" replace />;
+  if (sessionStatus === 'loading') {
+    return <section className="page-wrap"><LoadingState label="Checking your session" /></section>;
+  }
+  if (user?.roles.includes('SELLER')) return <Navigate to="/seller" replace />;
 
-  const application = status.data?.application ?? null;
+  const application = sellerStatus.data?.application ?? null;
 
   function field(name: keyof typeof EMPTY_FORM) {
     return {
@@ -48,7 +53,7 @@ export function SellPage() {
         method: 'POST',
         body: JSON.stringify(form),
       });
-      status.setData((current) => ({ application: result, storefront: current?.storefront ?? null }));
+      sellerStatus.setData((current) => ({ application: result, storefront: current?.storefront ?? null }));
       await refreshSession();
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Your application could not be submitted.');
@@ -57,7 +62,7 @@ export function SellPage() {
     }
   }
 
-  if (status.loading) {
+  if (user && sellerStatus.loading) {
     return <section className="page-wrap"><LoadingState label="Loading seller status" /></section>;
   }
 
@@ -100,7 +105,19 @@ export function SellPage() {
         </article>
       </div>
 
-      {application && application.status === 'PENDING' && (
+      {!user && (
+        <article className="account-card status-card sell-form">
+          <span className="badge badge-warning">Seller access</span>
+          <h2>Create an account to apply.</h2>
+          <p className="muted">Sign in with your university account to submit a seller application and track its review.</p>
+          <div className="inline-actions">
+            <Link className="button button-primary" to="/sign-up">Create account</Link>
+            <Link className="button button-outline" to="/sign-in">Sign in</Link>
+          </div>
+        </article>
+      )}
+
+      {user && application && application.status === 'PENDING' && (
         <article className="account-card status-card sell-form">
           <span className={'badge ' + statusTone(application.status)}>Application under review</span>
           <h2>{application.businessName}</h2>
@@ -120,11 +137,16 @@ export function SellPage() {
           <span className="badge badge-success">Approved</span>
           <h2>Your seller access is approved.</h2>
           <p className="muted">Refresh your session if the seller workspace does not appear yet.</p>
-          <Link className="button button-primary" to="/seller">Open seller workspace</Link>
+          <div className="inline-actions">
+            <Link className="button button-primary" to="/seller">Open seller workspace</Link>
+            <button className="button button-outline" type="button" onClick={() => void refreshSession()}>
+              Refresh session
+            </button>
+          </div>
         </article>
       )}
 
-      {(!application || application.status === 'REJECTED') && (
+      {user && (!application || application.status === 'REJECTED') && (
         <form className="account-card auth-form sell-form" onSubmit={submit}>
           <h2>{application ? 'Update and resubmit' : 'Seller application'}</h2>
           <p className="muted">Tell us about your business. Most applications are reviewed within two working days.</p>

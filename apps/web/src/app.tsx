@@ -26,6 +26,7 @@ import { ResetPasswordPage } from './pages/reset-password-page';
 import { SellPage } from './pages/sell-page';
 import { SellerDashboardPage } from './pages/seller/seller-dashboard-page';
 import { SellerInventoryPage } from './pages/seller/seller-inventory-page';
+import { SellerOrderDetailPage } from './pages/seller/seller-order-detail-page';
 import { SellerOrdersPage } from './pages/seller/seller-orders-page';
 import { SellerProductFormPage } from './pages/seller/seller-product-form-page';
 import { SellerProductsPage } from './pages/seller/seller-products-page';
@@ -81,6 +82,7 @@ export function App() {
             >
               <Route index element={<SellerDashboardPage />} />
               <Route path="orders" element={<SellerOrdersPage />} />
+              <Route path="orders/:id" element={<SellerOrderDetailPage />} />
               <Route path="products" element={<SellerProductsPage />} />
               <Route path="products/new" element={<SellerProductFormPage />} />
               <Route path="products/:id" element={<SellerProductFormPage />} />

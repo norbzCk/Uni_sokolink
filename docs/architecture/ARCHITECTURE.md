@@ -2,7 +2,7 @@
 
 ## Context and goals
 
-SokoLink serves customers and student sellers through a marketplace plus business operations. It must begin with a manageable operating footprint and allow independently deployed domains to scale or evolve without shared-table coupling. The architecture favors clear ownership, operational visibility, security and incremental delivery over maximizing service count.
+SokoLink serves customers and student sellers through a marketplace plus business operations. It must begin with a manageable operating footprint and allow independently deployed domains to scale or evolve without shared-table coupling. The architecture favors clear ownership, operational visibility, security and incremental delivery over maximizing service count. Detailed design is in the [SDD](SDD.md) and schema design in the [ERD](ERD.md).
 
 ## System view
 
@@ -28,13 +28,14 @@ flowchart LR
     D5[(commerce_db)]
     D6[(payment_db)]
     D7[(fulfilment_db)]
-    D8[(notification_db)]
+    D8[(notifications_db)]
     D9[(admin_db)]
   end
   Browser -->|HTTPS REST / OpenAPI| Edge
   Edge --> Identity
   Edge --> Seller
   Edge --> Catalog
+  Edge --> Inventory
   Edge --> Commerce
   Edge --> Payment
   Edge --> Fulfilment
@@ -62,7 +63,7 @@ flowchart LR
   Commerce -->|REST for fulfilment request| Fulfilment
 ```
 
-The diagram represents target logical boundaries. The Stage 4 foundation currently creates independently runnable gateway, identity, seller, catalogue, inventory, commerce, payment, fulfilment and notification apps. Administration starts as a protected interface over service APIs/events; it does not gain cross-database read access. Analytics uses projections built from events. The gateway currently has only ingress bootstrap, health and OpenAPI scaffolding; proxy routing, authentication enforcement and rate limiting remain to implement.
+The diagram represents target logical boundaries. The repository contains independently runnable gateway, identity, seller, catalogue, inventory, commerce, payment, fulfilment and notifications apps. Administration starts as a protected interface over service APIs/events; it does not gain cross-database read access. Analytics uses projections built from events. The gateway proxies auth, users, seller, catalogue, inventory, orders, payment and fulfilment routes; notifications routing, coarse rate limiting and central token enforcement remain to implement. Each service still performs its own authentication and authorization.
 
 ## Service topology and contracts
 
@@ -80,7 +81,7 @@ One account can hold CUSTOMER access and later apply for SELLER eligibility. App
 
 ## Deployment and scaling
 
-Docker Compose defines local PostgreSQL, RabbitMQ, gateway, services and web app. Runtime verification remains pending because this implementation environment cannot access the npm registry or create the Podman user namespace. Production deploys each service/image independently behind an ingress/load balancer, with managed PostgreSQL or isolated databases, managed broker, secret manager, TLS, backups and centralized metrics/logs/traces. Stateless API replicas scale horizontally; consumers scale by queue and partitioning constraints. Start with a modest deployment topology and add clustering/managed infrastructure when availability and throughput requirements justify cost.
+Docker Compose defines local PostgreSQL, RabbitMQ, gateway, services and web app. The web, gateway and core domain routes have been runtime-verified locally; Compose healthchecks can report unhealthy in the rootless Podman environment even when the services respond. Production deploys each service/image independently behind an ingress/load balancer, with managed PostgreSQL or isolated databases, managed broker, secret manager, TLS, backups and centralized metrics/logs/traces. Stateless API replicas scale horizontally; consumers scale by queue and partitioning constraints. Start with a modest deployment topology and add clustering/managed infrastructure when availability and throughput requirements justify cost.
 
 ## Observability and operations
 

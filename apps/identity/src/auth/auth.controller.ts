@@ -195,11 +195,11 @@ export class AuthController {
   @Public()
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify an email address using the emailed token' })
+  @ApiOperation({ summary: 'Verify an email address using the emailed one-time code' })
   @ApiResponse({ status: 200, description: 'Email address verified' })
-  @ApiResponse({ status: 400, description: 'Token is invalid, expired, or already used' })
+  @ApiResponse({ status: 400, description: 'Code is invalid, expired, or already used' })
   async verifyEmail(@Body() dto: VerifyEmailDto, @Req() request: Request): Promise<{ verified: true }> {
-    await this.auth.verifyEmail(dto.token, requestMeta(request));
+    await this.auth.verifyEmail(dto.email, dto.code, requestMeta(request));
     return { verified: true };
   }
 

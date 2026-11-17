@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
 import { ApiError } from '../api/client';
 
-export function useApi<T>(loader: () => Promise<T>, deps: unknown[]) {
+export function useApi<T>(loader: (() => Promise<T>) | null, deps: unknown[]) {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(loader !== null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+    if (!loader) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     loader()

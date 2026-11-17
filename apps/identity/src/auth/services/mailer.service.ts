@@ -63,29 +63,32 @@ export class MailerService {
   async sendEmailVerification(
     to: string,
     fullName: string,
-    token: string,
+    code: string,
     expiresAt: Date,
   ): Promise<void> {
-    const link = this.environment.WEB_APP_URL + '/verify-email?token=' + encodeURIComponent(token);
+    const link = this.environment.WEB_APP_URL + '/verify-email?email=' + encodeURIComponent(to);
     await this.send({
       to,
-      subject: 'Verify your SokoLink email address',
+      subject: 'Your SokoLink verification code',
       text:
         'Hello ' +
         fullName +
-        ',\n\nVerify your SokoLink email address by opening this link:\n' +
+        ',\n\nYour SokoLink email verification code is ' +
+        code +
+        '\n\nEnter it at ' +
         link +
-        '\n\nThis link expires on ' +
+        ' to verify your email address. The code expires on ' +
         formatExpiry(expiresAt) +
         '. If you did not create a SokoLink account, ignore this message.\n',
       html:
         '<p>Hello ' +
         escapeHtml(fullName) +
-        ',</p><p>Verify your SokoLink email address by opening the link below.</p>' +
-        '<p><a href="' +
+        ',</p><p>Your SokoLink email verification code is <strong>' +
+        escapeHtml(code) +
+        '</strong>.</p><p>Enter it at <a href="' +
         escapeHtml(link) +
-        '">Verify email address</a></p>' +
-        '<p>This link expires on ' +
+        '">the verification page</a> to verify your email address.</p>' +
+        '<p>The code expires on ' +
         escapeHtml(formatExpiry(expiresAt)) +
         '. If you did not create a SokoLink account, ignore this message.</p>',
     });

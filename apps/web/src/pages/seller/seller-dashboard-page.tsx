@@ -47,12 +47,12 @@ export function SellerDashboardPage() {
         </article>
         <article className="stat-card">
           <span>Approved products</span>
-          <strong>{catalogue.data?.approved ?? 0}</strong>
+          <strong>{catalogue.data?.APPROVED ?? 0}</strong>
           <Link className="text-link" to="/seller/products">Manage products</Link>
         </article>
         <article className="stat-card">
           <span>Awaiting review</span>
-          <strong>{catalogue.data?.pending ?? 0}</strong>
+          <strong>{catalogue.data?.PENDING ?? 0}</strong>
           <span className="muted">Submitted for moderation</span>
         </article>
       </div>

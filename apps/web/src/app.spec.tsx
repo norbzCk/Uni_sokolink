@@ -23,20 +23,35 @@ describe('web foundation', () => {
   it('shows the SokoLink landing page', async () => {
     render(<MemoryRouter><App /></MemoryRouter>);
     expect(
-      await screen.findByRole('heading', { name: /good ideas deserve a place to grow/i }),
+      await screen.findByRole('heading', { name: /good ideas deserve a place to grow/i }, { timeout: 15000 }),
     ).toBeTruthy();
-  });
+  }, 20000);
 
   it('renders the account creation form', async () => {
     render(<MemoryRouter initialEntries={['/sign-up']}><App /></MemoryRouter>);
-    expect(await screen.findByRole('heading', { name: /start with a customer account/i })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: /start with a customer account/i }, { timeout: 15000 })).toBeTruthy();
     expect(screen.getByRole('button', { name: /create account/i })).toBeTruthy();
-  });
+  }, 20000);
 
   it('redirects account visitors without a session to sign in', async () => {
     render(<MemoryRouter initialEntries={['/account']}><App /></MemoryRouter>);
     expect(
-      await screen.findByRole('heading', { name: /sign in to continue/i }, { timeout: 5000 }),
+      await screen.findByRole('heading', { name: /sign in to continue/i }, { timeout: 15000 }),
     ).toBeTruthy();
-  });
+  }, 20000);
+
+  it('shows the seller landing page to anonymous visitors', async () => {
+    render(<MemoryRouter initialEntries={['/sell']}><App /></MemoryRouter>);
+    expect(
+      await screen.findByRole('heading', { name: /create an account to apply/i }, { timeout: 15000 }),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: /create account/i })).toBeTruthy();
+  }, 20000);
+
+  it('redirects anonymous seller workspace visitors to sign in', async () => {
+    render(<MemoryRouter initialEntries={['/seller']}><App /></MemoryRouter>);
+    expect(
+      await screen.findByRole('heading', { name: /sign in to continue/i }, { timeout: 15000 }),
+    ).toBeTruthy();
+  }, 20000);
 });

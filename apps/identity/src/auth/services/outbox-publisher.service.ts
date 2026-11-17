@@ -5,7 +5,7 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import amqp, { type Channel, type ChannelModel, type ConfirmChannel } from 'amqplib';
+import amqp, { type ChannelModel, type ConfirmChannel } from 'amqplib';
 import { IDENTITY_ENVIRONMENT } from '../../environment.provider';
 import type { IdentityEnvironment } from '../../environment';
 import { PrismaService } from '../../prisma/prisma.service';

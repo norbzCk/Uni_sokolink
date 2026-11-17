@@ -87,7 +87,13 @@ export function SignInPage() {
         </p>
       </form>
       {errorCode === 'EMAIL_NOT_VERIFIED' && (
-        <ResendVerificationForm initialEmail={identifier.includes('@') ? identifier : ''} />
+        <ResendVerificationForm
+          initialEmail={identifier.includes('@') ? identifier : ''}
+          onVerified={() => {
+            setError(null);
+            setErrorCode(null);
+          }}
+        />
       )}
     </section>
   );

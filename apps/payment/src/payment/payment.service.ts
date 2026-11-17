@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { ServiceUser } from '@sokolink/platform';
 import { PrismaService } from '../prisma/prisma.service';
+import type { PaymentMethodKind } from '../generated/prisma';
 import type { CreatePaymentDto } from './payment.dto';
 
 @Injectable()
@@ -40,7 +41,10 @@ export class PaymentService {
 
   async createPayment(dto: CreatePaymentDto) {
     const method = await this.validateMethod(dto.methodCode);
-    const existing = await this.prisma.payment.findUnique({ where: { orderId: dto.orderId } });
+    const existing = await this.prisma.payment.findUnique({
+      where: { orderId: dto.orderId },
+      include: { method: true },
+    });
     if (existing) {
       return this.present(existing);
     }
@@ -54,12 +58,16 @@ export class PaymentService {
         status: 'PENDING',
         instructions: method.instructions,
       },
+      include: { method: true },
     });
     return this.present(payment);
   }
 
   async getPayment(user: ServiceUser, orderId: string) {
-    const payment = await this.prisma.payment.findUnique({ where: { orderId } });
+    const payment = await this.prisma.payment.findUnique({
+      where: { orderId },
+      include: { method: true },
+    });
     if (!payment) {
       throw new NotFoundException({ code: 'PAYMENT_NOT_FOUND', message: 'Payment not found.' });
     }
@@ -81,6 +89,7 @@ export class PaymentService {
     currency: string;
     methodCode: string;
     methodName: string;
+    method: { kind: PaymentMethodKind };
     status: string;
     instructions: string | null;
     createdAt: Date;
@@ -94,6 +103,7 @@ export class PaymentService {
       currency: payment.currency,
       methodCode: payment.methodCode,
       methodName: payment.methodName,
+      kind: payment.method.kind,
       status: payment.status,
       instructions: payment.instructions,
       createdAt: payment.createdAt.toISOString(),

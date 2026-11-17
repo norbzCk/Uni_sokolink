@@ -179,7 +179,12 @@ export class InventoryService {
           RETURNING "productId", "sellerId", "onHand", "reserved", "lowStockThreshold", "unit"
         `;
         const row = rows[0];
-        if (!row) continue;
+        if (!row) {
+          throw new ConflictException({
+            code: 'STOCK_COMMIT_FAILED',
+            message: 'Reserved stock could not be committed for one or more products.',
+          });
+        }
         await tx.stockMovement.create({
           data: {
             productId: row.productId,
@@ -246,14 +251,14 @@ export class InventoryService {
         SET "onHand" = "onHand" + ${dto.quantityDelta}, "updatedAt" = NOW()
         WHERE "productId" = ${productId}::uuid
           AND "sellerId" = ${sellerId}::uuid
-          AND "onHand" + ${dto.quantityDelta} >= 0
+          AND "onHand" + ${dto.quantityDelta} >= "reserved"
         RETURNING "productId", "sellerId", "onHand", "reserved", "lowStockThreshold", "unit"
       `;
       const row = rows[0];
       if (!row) {
         throw new ConflictException({
           code: 'INVALID_STOCK_ADJUSTMENT',
-          message: 'That adjustment would make on-hand stock negative or the stock item does not exist.',
+          message: 'That adjustment would leave less on-hand stock than reserved stock, or the stock item does not exist.',
         });
       }
       await tx.stockMovement.create({

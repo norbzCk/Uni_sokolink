@@ -7,7 +7,7 @@ Implemented in source, built, linted and unit-tested. Database migration executi
 ## Scope delivered
 
 - Customer self-registration with email and phone collection.
-- Email verification through a single-use, time-limited token.
+- Email verification through a six-digit, single-use, time-limited OTP with an attempt limit.
 - Phone verification through a six-digit, single-use code with an attempt limit.
 - Login by normalized email address or phone number.
 - Short-lived JWT access tokens and opaque refresh tokens in an HTTP-only cookie.
@@ -29,7 +29,7 @@ All routes are under `/api/v1` through the gateway. Public routes do not require
 | POST | `/auth/login` | Public | Sign in with email or phone; sets the refresh cookie |
 | POST | `/auth/refresh` | Public + cookie | Rotate the refresh session and issue an access token |
 | POST | `/auth/logout` | Public + cookie | Revoke the refresh-session family and clear the cookie |
-| POST | `/auth/verify-email` | Public | Consume an email verification token |
+| POST | `/auth/verify-email` | Public | Verify a six-digit email OTP |
 | POST | `/auth/resend-email-verification` | Public | Request another email verification message |
 | POST | `/auth/forgot-password` | Public | Request a password reset message |
 | POST | `/auth/reset-password` | Public | Consume a reset token, change the password and revoke sessions |
@@ -46,7 +46,7 @@ Account enumeration is reduced by returning the same accepted response for unkno
 - Access tokens are HS256 JWTs with issuer, audience, expiry, JWT ID and a dedicated `type=access` claim. A previous signing key is supported for rotation.
 - The global authentication guard reloads the account and roles on every request, rejects non-`ACTIVE` accounts and computes permissions from the current role assignments.
 - Login lockout and rate limiting are persisted in the identity database. Verification resend has per-account cooldown and hourly limits.
-- Verification tokens are single-use, atomically claimed, and password-reset completion revokes all active refresh sessions.
+- Email OTPs are record-bound with HMAC, single-use, limited to five attempts, and invalidated when reissued. Password-reset tokens are opaque and single-use; reset completion revokes all active refresh sessions.
 - Refresh cookies are `HttpOnly`, `SameSite=Lax`, path-scoped to `/api/v1/auth`, and `Secure` when configured for production.
 - Sensitive values are not returned in registration or login responses. Audit records contain hashes or identifiers rather than raw verification secrets.
 
@@ -68,7 +68,7 @@ No endpoint currently grants a role after registration. Seller application and a
 | Route | Behaviour |
 |---|---|
 | `/sign-up` | Customer registration; shows verification follow-up after success |
-| `/verify-email` | Automatically consumes the token in the query string |
+| `/verify-email` | Accepts the six-digit OTP from the email; query string prefills the address |
 | `/sign-in` | Email/phone sign-in with resend option for unverified accounts |
 | `/forgot-password` | Requests a reset message without disclosing account state |
 | `/reset-password` | Consumes the reset token and confirms session revocation |

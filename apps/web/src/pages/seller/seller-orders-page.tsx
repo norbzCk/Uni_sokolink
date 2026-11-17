@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ApiError, resolveMediaUrl } from '../../api/client';
 import type { OrderStatus, SellerOrder } from '../../api/marketplace';
 import { useAuth } from '../../auth/auth-context';
@@ -17,7 +18,7 @@ const FILTERS: Array<{ value: string; label: string }> = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
-const NEXT_ACTIONS: Partial<Record<OrderStatus, Array<{ status: OrderStatus; label: string; tone: string }>>> = {
+export const NEXT_ACTIONS: Partial<Record<OrderStatus, Array<{ status: OrderStatus; label: string; tone: string }>>> = {
   PLACED: [
     { status: 'CONFIRMED', label: 'Confirm order', tone: 'button-primary' },
     { status: 'CANCELLED', label: 'Cancel', tone: 'button-outline' },
@@ -135,21 +136,22 @@ export function SellerOrdersPage() {
                 ))}
               </div>
 
-              {(NEXT_ACTIONS[order.status] ?? []).length > 0 && (
-                <div className="row-actions">
-                  {(NEXT_ACTIONS[order.status] ?? []).map((action) => (
-                    <button
-                      className={'button button-small ' + action.tone}
-                      key={action.status}
-                      type="button"
-                      disabled={busy === order.id + action.status}
-                      onClick={() => advance(order, action.status)}
-                    >
-                      {busy === order.id + action.status ? 'Updating…' : action.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="row-actions">
+                <Link className="button button-outline button-small" to={'/seller/orders/' + order.id}>
+                  View details
+                </Link>
+                {(NEXT_ACTIONS[order.status] ?? []).map((action) => (
+                  <button
+                    className={'button button-small ' + action.tone}
+                    key={action.status}
+                    type="button"
+                    disabled={busy === order.id + action.status}
+                    onClick={() => advance(order, action.status)}
+                  >
+                    {busy === order.id + action.status ? 'Updating…' : action.label}
+                  </button>
+                ))}
+              </div>
             </article>
           ))}
         </div>

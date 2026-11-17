@@ -73,6 +73,12 @@ function tokenFromMessage(message, route) {
   return decodeURIComponent(match[1]);
 }
 
+function codeFromMessage(message) {
+  const match = message.match(/verification code is(?:<strong>)?\s*(\d{6})/i);
+  check(match, 'Email verification code was not found');
+  return match[1];
+}
+
 async function requireStatus(route, options, status, label) {
   const result = await request(route, options);
   assert.equal(result.status, status, `${label}: expected HTTP ${status}, got ${result.status}`);
@@ -115,15 +121,20 @@ async function main() {
     }, 409, 'duplicate registration');
     assert.equal(duplicate.payload.code, 'ACCOUNT_EXISTS');
 
-    const emailMessage = await findOutboxMessage(mailOutbox, email, 'verify-email?token=');
-    const emailToken = tokenFromMessage(emailMessage, 'verify-email');
+    const emailMessage = await findOutboxMessage(mailOutbox, email, 'Your SokoLink verification code');
+    const emailCode = codeFromMessage(emailMessage);
+    const wrongCode = emailCode === '000000' ? '111111' : '000000';
     await requireStatus('/auth/verify-email', {
       method: 'POST',
-      body: { token: emailToken },
+      body: { email, code: wrongCode },
+    }, 400, 'incorrect email verification code');
+    await requireStatus('/auth/verify-email', {
+      method: 'POST',
+      body: { email, code: emailCode },
     }, 200, 'email verification');
     await requireStatus('/auth/verify-email', {
       method: 'POST',
-      body: { token: emailToken },
+      body: { email, code: emailCode },
     }, 400, 'single-use email verification');
 
     const phoneUnverifiedLogin = await request('/auth/login', {

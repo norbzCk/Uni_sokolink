@@ -19,7 +19,7 @@ All services have separate deployable artifacts, credentials, persistence and Op
 
 The architecture keeps all ten logical domains explicit. Initial NestJS deployables should include gateway, identity, seller, catalogue, inventory, commerce, payment, fulfilment and notification. Administration begins as a protected React/admin API capability using domain-owned admin endpoints and a projection worker; it becomes a distinct deployable when reporting/moderation ownership warrants it. This avoids forcing a separate low-volume analytics service before it has a distinct runtime need. Fulfilment remains a logical boundary and can initially share the Commerce release pipeline only if its data store and module boundary remain isolated; prefer separate deployment once lifecycle and operators emerge.
 
-Stage 4 created nine NestJS apps: API Gateway plus the eight deployables listed above. Administration & Analytics remains a logical boundary without a standalone NestJS app, as approved in the planning documents. The gateway currently exposes versioned health/OpenAPI scaffolding; routing, identity enforcement and gateway rate limiting are not yet implemented.
+The repository contains nine NestJS apps: API Gateway plus the eight deployables listed above. Administration & Analytics remains a logical boundary without a standalone NestJS app, as approved in the planning documents. The gateway currently proxies auth, users, seller, catalogue, inventory, orders, payment and fulfilment; notifications routing, coarse rate limiting and central token enforcement are not yet implemented. Domain services continue to enforce their own authentication and authorization.
 
 ## Data and event ownership
 

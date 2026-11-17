@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type Role } from '../auth/auth-context';
 import { LoadingState } from './async-state';
@@ -9,8 +9,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-  const { status, user } = useAuth();
+  const { status, user, refreshSession } = useAuth();
   const location = useLocation();
+  const [refreshing, setRefreshing] = useState(false);
 
   if (status === 'loading') {
     return <section className="page-wrap"><LoadingState label="Checking your session" /></section>;
@@ -27,7 +28,18 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
         <h1>This workspace is not available for your account.</h1>
         <p className="muted">Return to your account or contact SokoLink support if you believe this is a mistake.</p>
         <div className="inline-actions">
-          <Link className="button button-primary" to="/account">Your account</Link>
+          <button
+            className="button button-primary"
+            type="button"
+            disabled={refreshing}
+            onClick={() => {
+              setRefreshing(true);
+              void refreshSession().finally(() => setRefreshing(false));
+            }}
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh access'}
+          </button>
+          <Link className="button button-outline" to="/account">Your account</Link>
           <Link className="text-link" to="/">Return home</Link>
         </div>
       </section>

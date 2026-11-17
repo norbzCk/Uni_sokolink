@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { useAuth } from '../auth/auth-context';
 import { Alert } from '../components/alert';
@@ -14,6 +14,7 @@ interface RegistrationView {
 
 export function SignUpPage() {
   const { register } = useAuth();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -66,8 +67,8 @@ export function SignUpPage() {
         <p className="eyebrow">ACCOUNT CREATED</p>
         <h1>Check your email.</h1>
         <p className="muted">
-          We sent a verification link to <strong>{registered.email}</strong>. Verify the address
-          before signing in.
+          We sent a six digit verification code to <strong>{registered.email}</strong>. Enter it
+          below to verify your address before signing in.
         </p>
         {!registered.verificationEmailSent && (
           <Alert tone="error">
@@ -80,7 +81,10 @@ export function SignUpPage() {
             signing in.
           </Alert>
         )}
-        <ResendVerificationForm initialEmail={registered.email} />
+        <ResendVerificationForm
+          initialEmail={registered.email}
+          onVerified={() => navigate('/sign-in', { replace: true })}
+        />
         <p className="form-foot">
           Already verified? <Link to="/sign-in">Sign in</Link>
         </p>

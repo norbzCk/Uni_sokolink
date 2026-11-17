@@ -431,8 +431,8 @@ export class AuthService {
     });
   }
 
-  async verifyEmail(token: string, meta: RequestMeta): Promise<void> {
-    await this.verification.verifyEmail(token, meta);
+  async verifyEmail(email: string, code: string, meta: RequestMeta): Promise<void> {
+    await this.verification.verifyEmail(email, code, meta);
   }
 
   async requestPhoneVerification(userId: string, meta: RequestMeta): Promise<void> {
