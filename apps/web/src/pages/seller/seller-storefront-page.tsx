@@ -126,7 +126,7 @@ export function SellerStorefrontPage() {
           <p className="muted">Buyers see this business profile alongside your products.</p>
         </div>
         {storefront && (
-          <Link className="button button-outline" to={'/stores/' + storefront.slug}>View public page</Link>
+          <Link className="button button-outline" to={'/s/' + storefront.slug}>View public page</Link>
         )}
       </div>
 

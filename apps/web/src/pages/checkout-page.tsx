@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { CreditCard, MapPin, ShieldCheck, ShoppingBag, Store, Truck } from 'lucide-react';
 import { apiRequest, ApiError } from '../api/client';
 import type { CheckoutInput, Order, PaymentMethod } from '../api/marketplace';
 import { useAuth } from '../auth/auth-context';
@@ -55,7 +56,7 @@ export function CheckoutPage() {
       <section className="page-wrap narrow-page">
         <h1>Your cart is empty.</h1>
         <p className="muted">Add products before checking out.</p>
-        <Link className="button button-primary" to="/products">Browse products</Link>
+        <Link className="button button-primary" to="/search">Browse products</Link>
       </section>
     );
   }
@@ -113,6 +114,7 @@ export function CheckoutPage() {
         <div>
           <p className="eyebrow">CHECKOUT</p>
           <h1>Complete your order</h1>
+          <p className="muted">Confirm delivery details and choose how you will pay.</p>
         </div>
         <Link className="text-link" to="/cart">Back to cart</Link>
       </div>
@@ -130,120 +132,158 @@ export function CheckoutPage() {
             </Alert>
           )}
 
-          <article className="account-card">
-            <h2>Delivery or pickup</h2>
-            <div className="segmented">
-              <label>
-                <input
-                  type="radio"
-                  name="deliveryMethod"
-                  value="DELIVERY"
-                  checked={deliveryMethod === 'DELIVERY'}
-                  onChange={() => setDeliveryMethod('DELIVERY')}
-                />
-                <span>Deliver to me</span>
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="deliveryMethod"
-                  value="PICKUP"
-                  checked={deliveryMethod === 'PICKUP'}
-                  onChange={() => setDeliveryMethod('PICKUP')}
-                />
-                <span>Pick up from seller</span>
-              </label>
-            </div>
+          <article className="checkout-step">
+            <header className="checkout-step-head">
+              <span className="checkout-step-icon"><Truck size={18} /></span>
+              <div>
+                <p className="eyebrow">STEP 1</p>
+                <h2>Delivery or pickup</h2>
+              </div>
+            </header>
+            <div className="checkout-step-body">
+              <div className="segmented">
+                <label>
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="DELIVERY"
+                    checked={deliveryMethod === 'DELIVERY'}
+                    onChange={() => setDeliveryMethod('DELIVERY')}
+                  />
+                  <Truck size={16} />
+                  <span>Deliver to me</span>
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="PICKUP"
+                    checked={deliveryMethod === 'PICKUP'}
+                    onChange={() => setDeliveryMethod('PICKUP')}
+                  />
+                  <Store size={16} />
+                  <span>Pick up from seller</span>
+                </label>
+              </div>
 
-            <div className="form-grid">
-              <FormField
-                label="Contact name"
-                name="contactName"
-                autoComplete="name"
-                required
-                value={contactName}
-                onChange={(event) => setContactName(event.target.value)}
-              />
-              <FormField
-                label="Phone number"
-                name="contactPhone"
-                type="tel"
-                autoComplete="tel"
-                placeholder="+255712345678"
-                required
-                value={contactPhone}
-                onChange={(event) => setContactPhone(event.target.value)}
-              />
-              {deliveryMethod === 'DELIVERY' && (
-                <>
-                  <label className="field">
-                    <span>Region</span>
-                    <select value={region} onChange={(event) => setRegion(event.target.value)} required>
-                      {REGIONS.map((name) => <option key={name} value={name}>{name}</option>)}
-                    </select>
-                  </label>
-                  <FormField
-                    label="District"
-                    name="district"
-                    required
-                    value={district}
-                    onChange={(event) => setDistrict(event.target.value)}
-                  />
-                  <FormField
-                    label="Delivery address"
-                    name="addressLine"
-                    required
-                    placeholder="Street, area or campus"
-                    value={addressLine}
-                    onChange={(event) => setAddressLine(event.target.value)}
-                  />
-                  <FormField
-                    label="Landmark (optional)"
-                    name="landmark"
-                    value={landmark}
-                    onChange={(event) => setLandmark(event.target.value)}
-                  />
-                </>
-              )}
+              <div className="form-grid">
+                <FormField
+                  label="Contact name"
+                  name="contactName"
+                  autoComplete="name"
+                  required
+                  value={contactName}
+                  onChange={(event) => setContactName(event.target.value)}
+                />
+                <FormField
+                  label="Phone number"
+                  name="contactPhone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+255712345678"
+                  required
+                  value={contactPhone}
+                  onChange={(event) => setContactPhone(event.target.value)}
+                />
+                {deliveryMethod === 'DELIVERY' && (
+                  <>
+                    <label className="field">
+                      <span>Region</span>
+                      <select value={region} onChange={(event) => setRegion(event.target.value)} required>
+                        {REGIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </label>
+                    <FormField
+                      label="District"
+                      name="district"
+                      required
+                      value={district}
+                      onChange={(event) => setDistrict(event.target.value)}
+                    />
+                    <FormField
+                      label="Delivery address"
+                      name="addressLine"
+                      required
+                      placeholder="Street, area or campus"
+                      value={addressLine}
+                      onChange={(event) => setAddressLine(event.target.value)}
+                    />
+                    <FormField
+                      label="Landmark (optional)"
+                      name="landmark"
+                      value={landmark}
+                      onChange={(event) => setLandmark(event.target.value)}
+                    />
+                  </>
+                )}
+              </div>
+              <label className="field">
+                <span>Notes for the seller (optional)</span>
+                <textarea
+                  rows={3}
+                  maxLength={500}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                />
+              </label>
             </div>
-            <label className="field">
-              <span>Notes for the seller (optional)</span>
-              <textarea
-                rows={3}
-                maxLength={500}
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-              />
-            </label>
           </article>
 
-          <article className="account-card">
-            <h2>Payment method</h2>
-            <p className="muted">Only methods the seller can currently honour are shown.</p>
-            {loadingMethods ? (
-              <LoadingState label="Loading payment methods" />
-            ) : (
-              <div className="payment-methods">
-                {methods.map((method) => (
-                  <label className={'payment-method' + (paymentMethodCode === method.code ? ' selected' : '')} key={method.code}>
-                    <input
-                      type="radio"
-                      name="paymentMethodCode"
-                      value={method.code}
-                      checked={paymentMethodCode === method.code}
-                      onChange={() => setPaymentMethodCode(method.code)}
-                    />
-                    <span>
-                      <strong>{method.name}</strong>
-                      <span className="muted">{method.description}</span>
-                    </span>
-                  </label>
+          <article className="checkout-step">
+            <header className="checkout-step-head">
+              <span className="checkout-step-icon"><CreditCard size={18} /></span>
+              <div>
+                <p className="eyebrow">STEP 2</p>
+                <h2>Payment method</h2>
+              </div>
+            </header>
+            <div className="checkout-step-body">
+              <p className="muted">Only methods the seller can currently honour are shown.</p>
+              {loadingMethods ? (
+                <LoadingState label="Loading payment methods" />
+              ) : (
+                <div className="payment-methods">
+                  {methods.map((method) => (
+                    <label className={'payment-method' + (paymentMethodCode === method.code ? ' selected' : '')} key={method.code}>
+                      <input
+                        type="radio"
+                        name="paymentMethodCode"
+                        value={method.code}
+                        checked={paymentMethodCode === method.code}
+                        onChange={() => setPaymentMethodCode(method.code)}
+                      />
+                      <span>
+                        <strong>{method.name}</strong>
+                        <span className="muted">{method.description}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {selectedMethod?.instructions && (
+                <p className="payment-note"><MapPin size={14} /> {selectedMethod.instructions}</p>
+              )}
+            </div>
+          </article>
+
+          <article className="checkout-step">
+            <header className="checkout-step-head">
+              <span className="checkout-step-icon"><ShoppingBag size={18} /></span>
+              <div>
+                <p className="eyebrow">STEP 3</p>
+                <h2>Review your items</h2>
+              </div>
+            </header>
+            <div className="checkout-step-body">
+              <div className="checkout-lines">
+                {cart.items.map((item) => (
+                  <div className="summary-row" key={item.productId}>
+                    <span>{item.quantity} × {item.name}</span>
+                    <span>{formatTzs(item.priceTzs * item.quantity)}</span>
+                  </div>
                 ))}
               </div>
-            )}
-            {selectedMethod?.instructions && (
-              <p className="payment-note">{selectedMethod.instructions}</p>
-            )}
+            </div>
           </article>
         </div>
 
@@ -263,9 +303,7 @@ export function CheckoutPage() {
           <button className="button button-primary full-width" type="submit" disabled={pending || loadingMethods}>
             {pending ? 'Placing order…' : 'Place order'}
           </button>
-          <p className="muted small-note">
-            Your order is recorded as awaiting payment. Sellers confirm cash or pickup payment directly with you.
-          </p>
+          <p className="secure-note"><ShieldCheck size={14} /> Your order is recorded as awaiting payment. Sellers confirm cash or pickup payment directly with you.</p>
         </aside>
       </form>
     </section>

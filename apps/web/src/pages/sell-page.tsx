@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { ArrowRight, BadgeCheck, PackageCheck, Store, Truck } from 'lucide-react';
 import { ApiError } from '../api/client';
 import type { MySellerStatus, SellerApplication } from '../api/marketplace';
 import { useAuth } from '../auth/auth-context';
@@ -61,15 +62,46 @@ export function SellPage() {
   }
 
   return (
-    <section className="page-wrap narrow-page sell-page">
-      <p className="eyebrow">SELL ON SOKOLINK</p>
-      <h1>Turn what you make into a storefront.</h1>
-      <p className="muted">
-        Apply once. When an administrator approves your business, you can publish products, manage stock and fulfil orders.
-      </p>
+    <section className="page-wrap sell-page">
+      <div className="sell-hero">
+        <div>
+          <p className="eyebrow">SELL ON SOKOLINK</p>
+          <h1>Turn what you make into a storefront.</h1>
+          <p>
+            Apply once. When an administrator approves your business, you can publish products, manage stock and fulfil orders.
+          </p>
+          <div className="hero-actions">
+            <Link className="button button-primary" to="/help">Seller guide <ArrowRight size={15} /></Link>
+            <Link className="button button-outline" to="/about">How SokoLink works</Link>
+          </div>
+        </div>
+        <div className="sell-hero-panel">
+          <div className="sell-hero-row"><Store size={18} /><div><strong>Your own storefront</strong><span>A shareable shop page for your business.</span></div></div>
+          <div className="sell-hero-row"><PackageCheck size={18} /><div><strong>Simple stock control</strong><span>Track availability and low-stock alerts.</span></div></div>
+          <div className="sell-hero-row"><Truck size={18} /><div><strong>Order fulfilment</strong><span>Confirm, process and ship from one workspace.</span></div></div>
+        </div>
+      </div>
+
+      <div className="sell-benefits">
+        <article>
+          <BadgeCheck size={22} />
+          <h3>Verified sellers</h3>
+          <p>Every store is reviewed before it goes live, building trust with buyers.</p>
+        </article>
+        <article>
+          <Store size={22} />
+          <h3>Built for campus</h3>
+          <p>Reach students with delivery or pickup options that fit campus life.</p>
+        </article>
+        <article>
+          <Truck size={22} />
+          <h3>Clear fulfilment</h3>
+          <p>Track each order from placed to delivered with a simple status flow.</p>
+        </article>
+      </div>
 
       {application && application.status === 'PENDING' && (
-        <article className="account-card status-card">
+        <article className="account-card status-card sell-form">
           <span className={'badge ' + statusTone(application.status)}>Application under review</span>
           <h2>{application.businessName}</h2>
           <p className="muted">Submitted {formatDate(application.submittedAt)}. You will be able to open your seller workspace once approved.</p>
@@ -84,7 +116,7 @@ export function SellPage() {
       )}
 
       {application && application.status === 'APPROVED' && (
-        <article className="account-card status-card">
+        <article className="account-card status-card sell-form">
           <span className="badge badge-success">Approved</span>
           <h2>Your seller access is approved.</h2>
           <p className="muted">Refresh your session if the seller workspace does not appear yet.</p>
@@ -93,8 +125,9 @@ export function SellPage() {
       )}
 
       {(!application || application.status === 'REJECTED') && (
-        <form className="account-card auth-form" onSubmit={submit}>
+        <form className="account-card auth-form sell-form" onSubmit={submit}>
           <h2>{application ? 'Update and resubmit' : 'Seller application'}</h2>
+          <p className="muted">Tell us about your business. Most applications are reviewed within two working days.</p>
           {error && <Alert tone="error">{error}</Alert>}
           <FormField label="Business name" name="businessName" minLength={2} maxLength={160} required {...field('businessName')} />
           <FormField label="Business category" name="businessCategory" placeholder="Home & Kitchen" minLength={2} maxLength={120} required {...field('businessCategory')} />

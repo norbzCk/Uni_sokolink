@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { HelpCircle, LogOut, Package, Store } from 'lucide-react';
 import { ApiError } from '../api/client';
 import { useAuth, type User } from '../auth/auth-context';
 import { Alert } from '../components/alert';
@@ -166,17 +167,36 @@ export function AccountPage() {
     <section className="page-wrap account-page">
       <p className="eyebrow">YOUR ACCOUNT</p>
       <div className="account-heading">
-        <div>
-          <h1>{currentUser.fullName}</h1>
-          <p className="muted">Member since {new Date(currentUser.createdAt).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
+        <div className="account-identity">
+          <span className="account-avatar" aria-hidden="true">{currentUser.fullName.slice(0, 1).toUpperCase()}</span>
+          <div>
+            <h1>{currentUser.fullName}</h1>
+            <p className="muted">Member since {new Date(currentUser.createdAt).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
+          </div>
         </div>
         <button className="button button-outline" type="button" onClick={handleSignOut} disabled={signingOut}>
+          <LogOut size={15} />
           {signingOut ? 'Signing out…' : 'Sign out'}
         </button>
       </div>
 
       {message && <Alert tone="success">{message}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
+
+      <div className="account-tiles">
+        <Link className="account-tile" to="/orders">
+          <span className="account-tile-icon"><Package size={18} /></span>
+          <div><strong>Your orders</strong><span>Track deliveries and review past purchases.</span></div>
+        </Link>
+        <Link className="account-tile" to={currentUser.roles.includes('SELLER') ? '/seller' : '/sell'}>
+          <span className="account-tile-icon"><Store size={18} /></span>
+          <div><strong>{currentUser.roles.includes('SELLER') ? 'Seller workspace' : 'Start selling'}</strong><span>Manage products, stock and customer orders.</span></div>
+        </Link>
+        <Link className="account-tile" to="/help">
+          <span className="account-tile-icon"><HelpCircle size={18} /></span>
+          <div><strong>Help centre</strong><span>Delivery, payments, returns and seller support.</span></div>
+        </Link>
+      </div>
 
       <div className="account-grid">
         <article className="account-card">

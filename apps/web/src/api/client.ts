@@ -79,5 +79,9 @@ export function resolveMediaUrl(path: string | null | undefined): string | null 
   if (!path) return null;
   if (/^https?:\/\//i.test(path)) return path;
   const base = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-  return base + (path.startsWith('/') ? path : '/' + path);
+  const url = base + (path.startsWith('/') ? path : '/' + path);
+  if (path.includes('/catalogue/images/')) {
+    return url + (url.includes('?') ? '&' : '?') + 'v=2';
+  }
+  return url;
 }

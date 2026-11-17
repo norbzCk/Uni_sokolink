@@ -72,6 +72,7 @@ export function OrderDetailPage() {
                   <div>
                     <p className="eyebrow">SOLD BY</p>
                     <h2>{sellerOrder.sellerName}</h2>
+                    <Link className="text-link" to={'/search?sellerId=' + encodeURIComponent(sellerOrder.sellerId)}>Visit shop</Link>
                   </div>
                   <span className={'badge ' + statusTone(sellerOrder.status)}>
                     {ORDER_STATUS_LABELS[sellerOrder.status]}
@@ -102,7 +103,7 @@ export function OrderDetailPage() {
                         )}
                       </div>
                       <div>
-                        <Link to={'/products/' + item.productSlug}><strong>{item.productName}</strong></Link>
+                        <Link to={'/p/' + item.productSlug}><strong>{item.productName}</strong></Link>
                         <span className="muted">{item.quantity} × {formatTzs(item.unitPriceTzs)} per {item.unit}</span>
                       </div>
                       <strong>{formatTzs(item.lineTotalTzs)}</strong>
@@ -145,9 +146,11 @@ export function OrderDetailPage() {
             <div className="summary-row"><span>Subtotal</span><span>{formatTzs(current.subtotalTzs)}</span></div>
             <div className="summary-row"><span>Delivery fee</span><span>{formatTzs(current.deliveryFeeTzs)}</span></div>
             <div className="summary-row total"><span>Total</span><strong>{formatTzs(current.totalTzs)}</strong></div>
+            <Link className="button button-outline full-width" to={'/payment/' + current.id}>Payment details</Link>
           </article>
 
-          <Link className="button button-outline full-width" to="/products">Continue shopping</Link>
+          <Link className="button button-outline full-width" to="/search">Continue shopping</Link>
+          <Link className="text-link" to="/help">Need help with this order?</Link>
         </aside>
       </div>
     </section>

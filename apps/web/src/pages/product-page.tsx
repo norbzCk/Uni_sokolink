@@ -1,8 +1,24 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  BadgeCheck,
+  Check,
+  Heart,
+  MapPin,
+  Minus,
+  Plus,
+  RotateCcw,
+  Share2,
+  ShieldCheck,
+  ShoppingBag,
+  Store,
+  Truck,
+} from 'lucide-react';
 import { apiRequest, resolveMediaUrl } from '../api/client';
 import type { Product } from '../api/marketplace';
 import { ErrorState, LoadingState } from '../components/async-state';
+import { ProductCard } from '../components/product-card';
+import { PriceTag, RatingStars, VerifiedSeller, productRating } from '../components/ui/primitives';
 import { useCart } from '../cart/cart-context';
 import { formatTzs } from '../lib/format';
 import { useApi } from '../lib/use-api';
@@ -13,38 +29,61 @@ export function ProductPage() {
   const cart = useCart();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
+  const [saved, setSaved] = useState(false);
+  const [shareLabel, setShareLabel] = useState('Share');
   const product = useApi(() => apiRequest<Product>('/catalogue/products/' + encodeURIComponent(slug)), [slug]);
   const related = useApi(
     () => apiRequest<Product[]>('/catalogue/products/' + encodeURIComponent(slug) + '/related'),
     [slug],
   );
 
-  if (product.loading) return <section className="page-wrap"><LoadingState label="Loading product" /></section>;
+  if (product.loading) {
+    return <section className="page-wrap"><LoadingState label="Loading product" /></section>;
+  }
   if (product.error || !product.data) {
     return (
       <section className="page-wrap">
         <ErrorState message={product.error ?? 'Product not found.'} />
-        <Link className="text-link" to="/products">Back to the marketplace</Link>
+        <Link className="text-link" to="/search">Back to the marketplace</Link>
       </section>
     );
   }
 
   const item = product.data;
   const available = item.stock?.available ?? 0;
-  const images = item.images.length > 0 ? item.images : [];
+  const lowStock = available > 0 && available <= (item.stock?.lowStockThreshold ?? 3);
+  const images = item.images;
   const active = images[activeImage];
+  const rating = productRating(item.id);
 
   function addToCart(goToCart = false) {
     cart.add(item, quantity);
     if (goToCart) navigate('/cart');
   }
 
+  async function share() {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: item.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareLabel('Link copied');
+        setTimeout(() => setShareLabel('Share'), 1800);
+      }
+    } catch {
+      setShareLabel('Share');
+    }
+  }
+
   return (
     <section className="page-wrap product-page">
       <nav className="breadcrumb" aria-label="Breadcrumb">
-        <Link to="/products">Marketplace</Link>
-        <span aria-hidden="true">/</span>
-        <Link to={'/products?category=' + item.category.slug}>{item.category.name}</Link>
+        <Link to="/">Home</Link>
+        <span aria-hidden="true">›</span>
+        <Link to={'/c/' + item.category.slug}>{item.category.name}</Link>
+        <span aria-hidden="true">›</span>
+        <span>{item.name}</span>
       </nav>
 
       <div className="product-detail">
@@ -56,7 +95,7 @@ export function ProductPage() {
               <span className="product-placeholder large" aria-hidden="true">{item.name.slice(0, 1)}</span>
             )}
           </div>
-          {images.length > 1 && (
+          {images.length > 1 ? (
             <div className="product-thumbs">
               {images.map((image, index) => (
                 <button
@@ -70,52 +109,100 @@ export function ProductPage() {
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="product-info">
           <p className="eyebrow">{item.category.name}</p>
           <h1>{item.name}</h1>
+          <div className="product-meta-row">
+            <RatingStars rating={rating.rating} count={rating.count} />
+            <span className="muted small-note">·</span>
+            <span className="text-link small-note">Visit the {item.seller.name} store</span>
+          </div>
           <p className="product-seller-line">
-            Sold by <Link className="text-link" to={'/products?sellerId=' + item.seller.id}>{item.seller.name}</Link>
+            Sold by <Link className="text-link" to={'/search?sellerId=' + item.seller.id}>{item.seller.name}</Link>{' '}
+            <VerifiedSeller compact />
           </p>
-          <p className="product-price">{formatTzs(item.priceTzs)} <span className="muted">per {item.unit}</span></p>
+          <p className="product-price">
+            <PriceTag amount={item.priceTzs} /> <span className="muted">per {item.unit}</span>
+          </p>
           <div className="product-meta-row">
             <span className={'badge ' + (available > 0 ? 'badge-success' : 'badge-danger')}>
-              {available > 0 ? available + ' available' : 'Out of stock'}
+              {available > 0 ? available + ' in stock' : 'Out of stock'}
             </span>
             <span className="badge badge-neutral">{item.condition.toLowerCase()}</span>
-            {item.brand && <span className="badge badge-neutral">{item.brand}</span>}
+            {item.brand ? <span className="badge badge-neutral">{item.brand}</span> : null}
+            {lowStock ? <span className="badge badge-warning">Low stock</span> : null}
           </div>
 
           <div className="purchase-panel">
-            <label className="quantity-field">
-              <span>Quantity</span>
+            <div className="qty-stepper" aria-label="Quantity">
+              <button
+                type="button"
+                aria-label="Decrease quantity"
+                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+              >
+                <Minus size={14} />
+              </button>
               <input
                 type="number"
                 min={1}
                 max={Math.max(available, 1)}
                 value={quantity}
+                aria-label="Quantity"
                 onChange={(event) =>
                   setQuantity(Math.max(1, Math.min(Number(event.target.value) || 1, Math.max(available, 1))))
                 }
               />
-            </label>
-            <button className="button button-primary" type="button" disabled={available <= 0} onClick={() => addToCart(false)}>
+              <button
+                type="button"
+                aria-label="Increase quantity"
+                onClick={() => setQuantity((value) => Math.min(Math.max(available, 1), value + 1))}
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+            <button
+              className="button button-primary"
+              type="button"
+              disabled={available <= 0}
+              onClick={() => addToCart(false)}
+            >
               Add to cart
             </button>
-            <button className="button button-outline" type="button" disabled={available <= 0} onClick={() => addToCart(true)}>
+            <button
+              className="button button-strong"
+              type="button"
+              disabled={available <= 0}
+              onClick={() => addToCart(true)}
+            >
               Buy now
             </button>
           </div>
-          <p className="muted small-note">Checkout supports cash on delivery and pay on pickup. Online payment is not enabled yet.</p>
+
+          <div className="share-row">
+            <button
+              className="share-button"
+              type="button"
+              aria-pressed={saved}
+              onClick={() => setSaved((value) => !value)}
+            >
+              <Heart size={15} fill={saved ? 'currentColor' : 'none'} />
+              {saved ? 'Saved' : 'Add to wishlist'}
+            </button>
+            <button className="share-button" type="button" onClick={() => void share()}>
+              <Share2 size={15} />
+              {shareLabel}
+            </button>
+          </div>
 
           <div className="product-description">
             <h2>About this product</h2>
             <p>{item.description}</p>
           </div>
 
-          {item.specifications.length > 0 && (
+          {item.specifications.length > 0 ? (
             <div className="product-specs">
               <h2>Details</h2>
               <dl className="detail-list">
@@ -125,40 +212,94 @@ export function ProductPage() {
                     <dd>{spec.value}</dd>
                   </div>
                 ))}
-                {item.model && (
-                  <div><dt>Model</dt><dd>{item.model}</dd></div>
-                )}
+                {item.model ? <div><dt>Model</dt><dd>{item.model}</dd></div> : null}
               </dl>
             </div>
-          )}
+          ) : null}
+
+          <div className="seller-card">
+            <span className="store-avatar" aria-hidden="true">
+              {item.seller.name.slice(0, 1)}
+            </span>
+            <div>
+              <strong>{item.seller.name}</strong>
+              <span><BadgeCheck size={12} /> IFM Verified Seller</span>
+            </div>
+            <Link className="button button-outline button-small" to={'/search?sellerId=' + item.seller.id}>
+              <Store size={14} /> Visit store
+            </Link>
+          </div>
         </div>
+
+        <aside className="buy-box">
+          <PriceTag amount={item.priceTzs} />
+          <p className="muted small-note" style={{ margin: 0 }}>
+            or {formatTzs(item.priceTzs * quantity)} for {quantity} {item.unit}
+            {quantity > 1 ? 's' : ''}
+          </p>
+          <div className="buy-box-meta">
+            <span><Truck size={15} /> Delivery from TSh 3,000</span>
+            <span><MapPin size={15} /> Campus pickup available</span>
+            <span><RotateCcw size={15} /> 7-day return window</span>
+          </div>
+          <button
+            className="button button-primary button-block"
+            type="button"
+            disabled={available <= 0}
+            onClick={() => addToCart(false)}
+          >
+            <ShoppingBag size={17} /> Add to cart
+          </button>
+          <button
+            className="button button-strong button-block"
+            type="button"
+            disabled={available <= 0}
+            onClick={() => addToCart(true)}
+          >
+            Buy now
+          </button>
+          <div className="secure-note">
+            <ShieldCheck size={15} />
+            <span>
+              <strong>Secure checkout</strong>
+              Pay on delivery or when you pick up your order.
+            </span>
+          </div>
+          <p className="muted small-note" style={{ margin: 0 }}>
+            <Check size={13} /> Sold and fulfilled by {item.seller.name}
+          </p>
+        </aside>
       </div>
 
-      {related.data && related.data.length > 0 && (
+      {related.data && related.data.length > 0 ? (
         <section className="home-section">
           <div className="section-heading">
-            <h2>More in {item.category.name}</h2>
-            <Link className="text-link" to={'/products?category=' + item.category.slug}>See all →</Link>
+            <div>
+              <p className="eyebrow">YOU MAY ALSO LIKE</p>
+              <h2>More in {item.category.name}</h2>
+            </div>
+            <Link className="text-link" to={'/c/' + item.category.slug}>See all →</Link>
           </div>
           <div className="product-grid">
-            {related.data.map((entry) => (
-              <article className="product-card" key={entry.id}>
-                <Link className="product-card-media" to={'/products/' + entry.slug}>
-                  {entry.images[0] ? (
-                    <img src={resolveMediaUrl(entry.images[0].url) ?? ''} alt={entry.images[0].alt} loading="lazy" />
-                  ) : (
-                    <span className="product-placeholder" aria-hidden="true">{entry.name.slice(0, 1)}</span>
-                  )}
-                </Link>
-                <div className="product-card-body">
-                  <h3><Link to={'/products/' + entry.slug}>{entry.name}</Link></h3>
-                  <strong>{formatTzs(entry.priceTzs)}</strong>
-                </div>
-              </article>
-            ))}
+            {related.data.map((entry) => <ProductCard key={entry.id} product={entry} />)}
           </div>
         </section>
-      )}
+      ) : null}
+
+      <div className="mobile-buy-bar">
+        <div>
+          <PriceTag amount={item.priceTzs} />
+          <span className="muted small-note">{available > 0 ? 'In stock' : 'Out of stock'}</span>
+        </div>
+        <button
+          className="button button-primary"
+          type="button"
+          disabled={available <= 0}
+          onClick={() => addToCart(true)}
+        >
+          Buy now
+        </button>
+      </div>
     </section>
   );
 }
