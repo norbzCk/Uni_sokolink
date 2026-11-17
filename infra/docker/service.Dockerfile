@@ -6,6 +6,7 @@ COPY libs ./libs
 RUN npm ci --include=dev --no-audit --no-fund
 ARG APP_NAME
 ENV APP_NAME=${APP_NAME}
+RUN find . -name '*.tsbuildinfo' -delete
 RUN npm run build --workspace=@sokolink/platform \
   && npm run build --workspace=@sokolink/contracts \
   && npm run build --workspace=@sokolink/${APP_NAME}

@@ -4,6 +4,7 @@ COPY package.json package-lock.json nx.json tsconfig.base.json eslint.config.mjs
 COPY apps ./apps
 COPY libs ./libs
 RUN npm ci --include=dev --no-audit --no-fund
+RUN find . -name '*.tsbuildinfo' -delete
 RUN npm run build --workspace=@sokolink/web
 USER node
 WORKDIR /workspace/apps/web
