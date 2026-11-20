@@ -17,7 +17,7 @@ function landingPath(user: User): string {
 }
 
 export function SignInPage() {
-  const { signIn, status } = useAuth();
+  const { signIn, status, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [identifier, setIdentifier] = useState('');
@@ -26,20 +26,20 @@ export function SignInPage() {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const from = (location.state as { from?: string } | null)?.from;
+  const state = location.state as { from?: string; message?: string } | null;
+  const from = state?.from;
 
   if (status === 'authenticated') {
-    return <Navigate to={from ?? '/account'} replace />;
+    return <Navigate to={from ?? (user ? landingPath(user) : '/account')} replace />;
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function attemptSignIn() {
     setError(null);
     setErrorCode(null);
     setPending(true);
     try {
-      const user = await signIn(identifier, password);
-      navigate(from ?? landingPath(user), { replace: true });
+      const signedInUser = await signIn(identifier, password);
+      navigate(from ?? landingPath(signedInUser), { replace: true });
     } catch (caught) {
       if (caught instanceof ApiError) {
         setError(caught.message);
@@ -52,12 +52,18 @@ export function SignInPage() {
     }
   }
 
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void attemptSignIn();
+  }
+
   return (
     <section className="auth-card">
       <p className="eyebrow">WELCOME BACK</p>
       <h1>Sign in to continue</h1>
       <p className="muted">Your marketplace and business workspace, in one place.</p>
       <form onSubmit={submit} noValidate>
+        {state?.message && <Alert tone="success">{state.message}</Alert>}
         {error && <Alert tone="error">{error}</Alert>}
         <FormField
           label="Email address or phone number"
@@ -90,8 +96,7 @@ export function SignInPage() {
         <ResendVerificationForm
           initialEmail={identifier.includes('@') ? identifier : ''}
           onVerified={() => {
-            setError(null);
-            setErrorCode(null);
+            void attemptSignIn();
           }}
         />
       )}

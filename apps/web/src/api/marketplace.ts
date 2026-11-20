@@ -121,6 +121,46 @@ export interface StockMovement {
   createdAt: string;
 }
 
+export interface InventoryTrendPoint {
+  date: string;
+  label: string;
+  stockIn: number;
+  stockOut: number;
+  reserved: number;
+  released: number;
+  net: number;
+}
+
+export interface InventoryTopMoved {
+  productId: string;
+  movements: number;
+  stockIn: number;
+  stockOut: number;
+  reserved: number;
+  released: number;
+}
+
+export interface InventoryAnalytics {
+  range: { days: number; from: string; to: string };
+  summary: {
+    products: number;
+    onHand: number;
+    reserved: number;
+    available: number;
+    lowStockProducts: number;
+    outOfStockProducts: number;
+    healthyProducts: number;
+    movementCount: number;
+    stockIn: number;
+    stockOut: number;
+    reservations: number;
+    releases: number;
+    netOnHand: number;
+  };
+  trend: InventoryTrendPoint[];
+  topMoved: InventoryTopMoved[];
+}
+
 export interface PaymentMethod {
   code: string;
   name: string;

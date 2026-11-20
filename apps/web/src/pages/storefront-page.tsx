@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BadgeCheck, CalendarDays, MapPin, Package, Store } from 'lucide-react';
 import { apiRequest, resolveMediaUrl } from '../api/client';
@@ -13,6 +14,7 @@ interface StorefrontPayload {
 
 export function StorefrontPage() {
   const { slug = '' } = useParams();
+  const [tab, setTab] = useState<'products' | 'about'>('products');
   const data = useApi<StorefrontPayload>(async () => {
     const storefront = await apiRequest<Storefront>('/seller/storefronts/' + encodeURIComponent(slug));
     const products = await apiRequest<ProductList>(
@@ -55,7 +57,13 @@ export function StorefrontPage() {
           </div>
         </div>
         <div className="store-actions">
-          <Link className="button button-outline" to="/contact">Contact seller</Link>
+          {storefront.email ? (
+            <a className="button button-outline" href={'mailto:' + storefront.email}>Contact seller</a>
+          ) : storefront.phone ? (
+            <a className="button button-outline" href={'tel:' + storefront.phone}>Call seller</a>
+          ) : (
+            <Link className="button button-outline" to="/contact">Contact support</Link>
+          )}
         </div>
       </header>
 
@@ -64,8 +72,26 @@ export function StorefrontPage() {
       )}
 
       <div className="store-tabs">
-        <a className="active" href="#products">Products</a>
-        <a href="#about">About the seller</a>
+        <button
+          className={tab === 'products' ? 'active' : ''}
+          type="button"
+          onClick={() => {
+            setTab('products');
+            document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
+          Products
+        </button>
+        <button
+          className={tab === 'about' ? 'active' : ''}
+          type="button"
+          onClick={() => {
+            setTab('about');
+            document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
+          About the seller
+        </button>
       </div>
 
       <div id="products">
@@ -74,7 +100,14 @@ export function StorefrontPage() {
           <Link className="text-link" to="/search">Browse all products →</Link>
         </div>
 
-        {products.items.length > 0 ? (
+        {storefront.status === 'PAUSED' ? (
+          <div className="empty-panel">
+            <Store size={26} strokeWidth={1.6} aria-hidden="true" />
+            <h2>This store is paused.</h2>
+            <p className="muted">The seller is not accepting orders right now. Check back soon.</p>
+            <Link className="button button-outline" to="/search">Browse other sellers</Link>
+          </div>
+        ) : products.items.length > 0 ? (
           <div className="product-grid">
             {products.items.map((product) => <ProductCard key={product.id} product={product} />)}
           </div>

@@ -96,7 +96,15 @@ export function AdminSellersPage() {
                   <button className="button button-primary button-small" type="button" disabled={busy === application.id} onClick={() => approve(application)}>
                     Approve seller
                   </button>
-                  <button className="button button-outline button-small" type="button" onClick={() => setRejecting(application.id)}>
+                  <button
+                    className="button button-outline button-small"
+                    type="button"
+                    onClick={() => {
+                      setReason('');
+                      setError(null);
+                      setRejecting(application.id);
+                    }}
+                  >
                     Reject
                   </button>
                 </div>

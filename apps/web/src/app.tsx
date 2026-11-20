@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AuthProvider } from './auth/auth-context';
 import { CartProvider } from './cart/cart-context';
 import { ProtectedRoute } from './components/protected-route';
@@ -45,6 +45,11 @@ import {
 import { StorefrontPage } from './pages/storefront-page';
 import { VerifyEmailPage } from './pages/verify-email-page';
 
+function OrderConfirmationRedirect() {
+  const { id = '' } = useParams();
+  return <Navigate to={'/orders/' + id} state={{ placed: true }} replace />;
+}
+
 export function App() {
   return (
     <AuthProvider>
@@ -71,10 +76,10 @@ export function App() {
             <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
             <Route path="/orders/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
-            <Route path="/order-confirmed/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+            <Route path="/order-confirmed/:id" element={<ProtectedRoute><OrderConfirmationRedirect /></ProtectedRoute>} />
             <Route path="/payment/:orderId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
             <Route path="/sell" element={<SellPage />} />
-            <Route path="/seller/apply" element={<ProtectedRoute><SellPage /></ProtectedRoute>} />
+            <Route path="/seller/apply" element={<Navigate to="/sell" replace />} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             <Route
               path="/seller"

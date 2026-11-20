@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'anonymous'>('loading');
   const tokenRef = useRef<string | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshPromise = useRef<Promise<AuthResponse> | null>(null);
 
   const clearSession = useCallback(() => {
     tokenRef.current = null;
@@ -80,6 +81,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const requestRefresh = useCallback((): Promise<AuthResponse> => {
+    if (refreshPromise.current) return refreshPromise.current;
+    const pending = apiRequest<AuthResponse>('/auth/refresh', { method: 'POST' });
+    refreshPromise.current = pending;
+    pending.then(
+      () => { refreshPromise.current = null; },
+      () => { refreshPromise.current = null; },
+    );
+    return pending;
+  }, []);
+
   const applySession = useCallback((session: AuthResponse) => {
     tokenRef.current = session.accessToken;
     setUser(session.user);
@@ -89,20 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const refreshIn = Math.max(session.expiresIn - 60, 30) * 1000;
     refreshTimer.current = setTimeout(() => {
-      void apiRequest<AuthResponse>('/auth/refresh', { method: 'POST' })
-        .then(applySession)
-        .catch(() => clearSession());
+      void requestRefresh().then(applySession).catch(() => clearSession());
     }, refreshIn);
-  }, [clearSession]);
+  }, [clearSession, requestRefresh]);
 
   const refreshSession = useCallback(async () => {
     try {
-      const session = await apiRequest<AuthResponse>('/auth/refresh', { method: 'POST' });
-      applySession(session);
+      applySession(await requestRefresh());
     } catch {
       clearSession();
     }
-  }, [applySession, clearSession]);
+  }, [applySession, clearSession, requestRefresh]);
 
   useEffect(() => {
     void refreshSession();
@@ -133,9 +142,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       await apiRequest<void>('/auth/logout', { method: 'POST' }, tokenRef.current);
-    } finally {
+    } catch {
       clearSession();
+      return;
     }
+    clearSession();
   }, [clearSession]);
 
   const authRequest = useCallback(async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
@@ -144,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
-          const session = await apiRequest<AuthResponse>('/auth/refresh', { method: 'POST' });
+          const session = await requestRefresh();
           applySession(session);
           return await apiRequest<T>(path, init, session.accessToken);
         } catch {
@@ -153,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw error;
     }
-  }, [applySession, clearSession]);
+  }, [applySession, clearSession, requestRefresh]);
 
   const value = useMemo<AuthContextValue>(
     () => ({ user, status, signIn, register, signOut, authRequest, refreshSession }),

@@ -97,6 +97,10 @@ export function HomePage() {
     () => apiRequest<ProductList>('/catalogue/products?sort=newest&pageSize=12'),
     [],
   );
+  const deals = useApi(
+    () => apiRequest<ProductList>('/catalogue/products?sort=price_asc&pageSize=6'),
+    [],
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setSlide((current) => (current + 1) % heroSlides.length), 6500);
@@ -106,8 +110,8 @@ export function HomePage() {
   const current = heroSlides[slide] ?? heroSlides[0]!;
   const items = products.data?.items ?? [];
   const heroProducts = items.slice(0, 3);
-  const deals = items.slice(0, 6);
-  const recommended = items.slice(6, 12);
+  const dealItems = deals.data?.items ?? [];
+  const recommended = items.slice(0, 12);
 
   return (
     <div className="page-wrap">
@@ -214,11 +218,11 @@ export function HomePage() {
           title="Popular on campus"
           action={<Link className="text-link" to="/deals">See all deals →</Link>}
         />
-        {products.loading ? (
+        {deals.loading ? (
           <LoadingState label="Loading products" />
-        ) : deals.length > 0 ? (
+        ) : dealItems.length > 0 ? (
           <div className="product-carousel">
-            {deals.map((product) => (
+            {dealItems.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

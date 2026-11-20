@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   ChevronDown,
-  Globe,
   Home,
   MapPin,
   Menu,
@@ -32,8 +31,15 @@ export function AppLayout() {
 
   useEffect(() => {
     setDrawerOpen(false);
+    if (location.hash) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, location.hash]);
 
   const firstName = user?.fullName.split(' ')[0];
 
@@ -61,11 +67,6 @@ export function AppLayout() {
             </span>
           </Link>
           <SearchBar />
-          <button className="language-toggle" type="button" title="Language">
-            <Globe size={14} />
-            EN
-            <ChevronDown size={12} />
-          </button>
           <div className="header-actions">
             {status === 'loading' ? (
               <span className="nav-muted">Checking session…</span>
@@ -111,6 +112,9 @@ export function AppLayout() {
             ) : null}
             {(user?.roles.includes('ADMIN') || user?.roles.includes('SUPER_ADMIN')) ? (
               <Link to="/admin">Administration</Link>
+            ) : null}
+            {user?.roles.includes('DELIVERY_PARTNER') ? (
+              <Link to="/delivery">Delivery workspace</Link>
             ) : null}
             <Link className="subnav-sell" to="/sell">
               Sell on SokoLink

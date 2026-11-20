@@ -92,9 +92,11 @@ export function AccountPage() {
     setSigningOut(true);
     try {
       await signOut();
-      navigate('/', { replace: true });
+    } catch {
+      setError('You have been signed out on this device.');
     } finally {
       setSigningOut(false);
+      navigate('/', { replace: true });
     }
   }
 
@@ -219,7 +221,14 @@ export function AccountPage() {
               {currentUser.phoneVerified ? 'Phone verified' : 'Phone not verified'}
             </span>
           </div>
-          {!currentUser.emailVerified && <ResendVerificationForm initialEmail={currentUser.email} />}
+          {!currentUser.emailVerified && (
+            <ResendVerificationForm
+              initialEmail={currentUser.email}
+              onVerified={() => {
+                void refreshSession().then(() => setMessage('Your email address is verified.'));
+              }}
+            />
+          )}
           {!currentUser.phoneVerified && (
             <div className="phone-verification">
               <h3>Verify your phone number</h3>
@@ -263,6 +272,9 @@ export function AccountPage() {
             {currentUser.roles.includes('SELLER') && <Link className="text-link" to="/seller">Open seller workspace</Link>}
             {(currentUser.roles.includes('ADMIN') || currentUser.roles.includes('SUPER_ADMIN')) && (
               <Link className="text-link" to="/admin">Open administration</Link>
+            )}
+            {currentUser.roles.includes('DELIVERY_PARTNER') && (
+              <Link className="text-link" to="/delivery">Open delivery workspace</Link>
             )}
             <Link className="text-link" to="/">Browse the marketplace</Link>
           </div>

@@ -74,7 +74,7 @@ function tokenFromMessage(message, route) {
 }
 
 function codeFromMessage(message) {
-  const match = message.match(/verification code is(?:<strong>)?\s*(\d{6})/i);
+  const match = message.match(/verification code is\s*(?:<strong>)?\s*(\d{6})/i);
   check(match, 'Email verification code was not found');
   return match[1];
 }

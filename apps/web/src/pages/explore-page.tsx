@@ -20,19 +20,31 @@ export function ExplorePage() {
   const [minPrice, setMinPrice] = useState(params.get('minPrice') ?? '');
   const [maxPrice, setMaxPrice] = useState(params.get('maxPrice') ?? '');
   const [filterOpen, setFilterOpen] = useState(false);
-  const query = params.toString();
-  const categories = useApi(() => apiRequest<Category[]>('/catalogue/categories'), []);
-  const products = useApi(
-    () => apiRequest<ProductList>('/catalogue/products?' + query),
-    [query],
-  );
-
+  const [clientPage, setClientPage] = useState(1);
   const category = params.get('category') ?? '';
   const sort = params.get('sort') ?? 'recommended';
   const page = Number(params.get('page') ?? '1');
   const q = params.get('q') ?? '';
   const selectedConditions = (params.get('condition') ?? '').split(',').filter(Boolean);
   const inStockOnly = params.get('stock') === 'in';
+  const localFilters = selectedConditions.length > 0 || inStockOnly;
+  const apiParams = new URLSearchParams(params);
+  apiParams.delete('condition');
+  apiParams.delete('stock');
+  if (localFilters) {
+    apiParams.set('page', '1');
+    apiParams.set('pageSize', '48');
+  }
+  const apiQuery = apiParams.toString();
+  const categories = useApi(() => apiRequest<Category[]>('/catalogue/categories'), []);
+  const products = useApi(
+    () => apiRequest<ProductList>('/catalogue/products?' + apiQuery),
+    [apiQuery],
+  );
+
+  useEffect(() => {
+    setClientPage(1);
+  }, [apiQuery]);
 
   useEffect(() => {
     setSearch(q);
@@ -76,18 +88,24 @@ export function ExplorePage() {
     setParams(new URLSearchParams());
   }
 
-  const totalPages = products.data?.totalPages ?? 0;
-  const items = (products.data?.items ?? []).filter((product) => {
+  const filtered = (products.data?.items ?? []).filter((product) => {
     if (selectedConditions.length && !selectedConditions.includes(product.condition)) return false;
     if (inStockOnly && (product.stock?.available ?? 0) <= 0) return false;
     return true;
   });
+  const total = localFilters ? filtered.length : (products.data?.total ?? 0);
+  const totalPages = localFilters ? Math.max(1, Math.ceil(filtered.length / 12)) : (products.data?.totalPages ?? 0);
+  const currentPage = localFilters ? clientPage : page;
+  const items = localFilters ? filtered.slice((clientPage - 1) * 12, clientPage * 12) : filtered;
 
+  const sellerId = params.get('sellerId') ?? '';
   const title = q
     ? 'Results for “' + q + '”'
     : category
       ? (categories.data?.find((item) => item.slug === category)?.name ?? 'Category')
-      : 'All products';
+      : sellerId
+        ? 'Products from this seller'
+        : 'All products';
 
   const filters = (
     <>
@@ -278,7 +296,7 @@ export function ExplorePage() {
               {products.loading
                 ? 'Loading products…'
                 : products.data
-                  ? products.data.total + ' ' + (products.data.total === 1 ? 'product' : 'products')
+                  ? total + ' ' + (total === 1 ? 'product' : 'products')
                   : 'No products'}
             </span>
             <span className="muted small-note">Prices include VAT where applicable</span>
@@ -300,17 +318,17 @@ export function ExplorePage() {
                   <button
                     className="button button-outline button-small"
                     type="button"
-                    disabled={page <= 1}
-                    onClick={() => update({ page: String(page - 1) })}
+                    disabled={currentPage <= 1}
+                    onClick={() => (localFilters ? setClientPage(currentPage - 1) : update({ page: String(currentPage - 1) }))}
                   >
                     <ChevronLeft size={15} /> Previous
                   </button>
-                  <span>Page {page} of {totalPages}</span>
+                  <span>Page {currentPage} of {totalPages}</span>
                   <button
                     className="button button-outline button-small"
                     type="button"
-                    disabled={page >= totalPages}
-                    onClick={() => update({ page: String(page + 1) })}
+                    disabled={currentPage >= totalPages}
+                    onClick={() => (localFilters ? setClientPage(currentPage + 1) : update({ page: String(currentPage + 1) }))}
                   >
                     Next <ChevronRight size={15} />
                   </button>

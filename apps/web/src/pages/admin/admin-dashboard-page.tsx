@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Product, SellerApplication } from '../../api/marketplace';
 import { useAuth } from '../../auth/auth-context';
-import { LoadingState } from '../../components/async-state';
+import { ErrorState, LoadingState } from '../../components/async-state';
 import { useApi } from '../../lib/use-api';
 
 export function AdminDashboardPage() {
@@ -17,6 +17,18 @@ export function AdminDashboardPage() {
 
   if (applications.loading || products.loading) {
     return <LoadingState label="Loading administration overview" />;
+  }
+
+  const loadError = applications.error ?? products.error;
+  if (loadError) {
+    return (
+      <div className="workspace-entry">
+        <ErrorState message={loadError} />
+        <button className="button button-outline" type="button" onClick={() => window.location.reload()}>
+          Try again
+        </button>
+      </div>
+    );
   }
 
   return (

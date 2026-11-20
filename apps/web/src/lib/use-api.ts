@@ -16,6 +16,7 @@ export function useApi<T>(loader: (() => Promise<T>) | null, deps: unknown[]) {
     }
     setLoading(true);
     setError(null);
+    setData(null);
     loader()
       .then((result) => {
         if (active) setData(result);

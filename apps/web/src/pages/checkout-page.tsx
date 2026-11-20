@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CreditCard, MapPin, ShieldCheck, ShoppingBag, Store, Truck } from 'lucide-react';
 import { apiRequest, ApiError } from '../api/client';
@@ -31,6 +31,7 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loadingMethods, setLoadingMethods] = useState(true);
+  const [methodsError, setMethodsError] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<'SELLER_DELIVERY' | 'PICKUP'>('SELLER_DELIVERY');
   const [contactName, setContactName] = useState(user?.fullName ?? '');
   const [contactPhone, setContactPhone] = useState(user?.phone ?? '');
@@ -51,15 +52,21 @@ export function CheckoutPage() {
   const [fieldErrors, setFieldErrors] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
 
-  useEffect(() => {
+  const loadMethods = useCallback(() => {
+    setLoadingMethods(true);
+    setMethodsError(false);
     apiRequest<PaymentMethod[]>('/payment/methods')
       .then((items) => {
         setMethods(items);
         setPaymentMethodCode((current) => current || items[0]?.code || '');
       })
-      .catch(() => setError('Payment methods could not be loaded. Refresh the page to try again.'))
+      .catch(() => setMethodsError(true))
       .finally(() => setLoadingMethods(false));
   }, []);
+
+  useEffect(() => {
+    loadMethods();
+  }, [loadMethods]);
 
   useEffect(() => {
     const allowed = allowedPaymentCodes(deliveryMethod);
@@ -272,6 +279,13 @@ export function CheckoutPage() {
               </p>
               {loadingMethods ? (
                 <LoadingState label="Loading payment methods" />
+              ) : methodsError ? (
+                <div>
+                  <p className="muted">Payment methods could not be loaded.</p>
+                  <button className="button button-outline button-small" type="button" onClick={loadMethods}>
+                    Try again
+                  </button>
+                </div>
               ) : visibleMethods.length === 0 ? (
                 <p className="muted">No compatible payment methods are currently configured.</p>
               ) : (
@@ -333,7 +347,11 @@ export function CheckoutPage() {
           <div className="summary-row"><span>Subtotal</span><strong>{formatTzs(cart.subtotalTzs)}</strong></div>
           <div className="summary-row"><span>Delivery</span><span className="muted">Confirmed with seller</span></div>
           <div className="summary-row total"><span>Total</span><strong>{formatTzs(cart.subtotalTzs)}</strong></div>
-          <button className="button button-primary full-width" type="submit" disabled={pending || loadingMethods}>
+          <button
+            className="button button-primary full-width"
+            type="submit"
+            disabled={pending || loadingMethods || methodsError || visibleMethods.length === 0}
+          >
             {pending ? 'Placing order…' : 'Place order'}
           </button>
           <p className="secure-note"><ShieldCheck size={14} /> SokoLink records your payment and settles with the seller after fulfilment. For cash orders the seller confirms payment on handover.</p>

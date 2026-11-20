@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -94,6 +95,15 @@ export class AdjustStockDto {
   @MinLength(3)
   @MaxLength(300)
   reason!: string;
+}
+
+export class InventoryAnalyticsQueryDto {
+  @ApiPropertyOptional({ enum: [7, 30, 90], default: 30 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([7, 30, 90])
+  days?: number;
 }
 
 export class StockSettingsDto {

@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Query,
   Post,
   Req,
 } from '@nestjs/common';
@@ -22,6 +23,7 @@ import {
 import {
   AdjustStockDto,
   InitializeStockDto,
+  InventoryAnalyticsQueryDto,
   StockLevelsDto,
   StockMovementBatchDto,
   StockSettingsDto,
@@ -76,6 +78,14 @@ export class InventoryController {
   async commit(@Body() dto: StockMovementBatchDto, @Req() request: Request) {
     requireInternalToken(request.header('x-internal-token'));
     return { items: await this.inventory.commitSale(dto) };
+  }
+
+  @ApiBearerAuth()
+  @RequireRoles('SELLER')
+  @Get('seller/analytics')
+  @ApiOperation({ summary: 'Read inventory health and movement analytics for the seller dashboard' })
+  analytics(@CurrentUser() user: ServiceUser, @Query() query: InventoryAnalyticsQueryDto) {
+    return this.inventory.analytics(user.id, query.days ?? 30);
   }
 
   @ApiBearerAuth()

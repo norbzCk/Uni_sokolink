@@ -129,11 +129,3 @@ export function ProductGridSkeleton({ count = 10 }: { count?: number }) {
     </div>
   );
 }
-
-export function productRating(productId: string): { rating: number; count: number } {
-  let hash = 0;
-  for (let index = 0; index < productId.length; index += 1) {
-    hash = (hash * 31 + productId.charCodeAt(index)) % 100000;
-  }
-  return { rating: 4.1 + (hash % 8) / 10, count: 6 + (hash % 140) };
-}

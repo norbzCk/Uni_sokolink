@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { MapPin, PackageCheck, ShieldCheck, Store, Truck, Wallet } from 'lucide-react';
 import { apiRequest } from '../api/client';
@@ -147,6 +148,24 @@ export function AboutPage() {
             Sellers get stock tools, order management and a storefront they can share with buyers.
           </p>
         </article>
+        <article className="account-card" id="impact">
+          <PackageCheck size={22} className="info-icon" />
+          <h2>Our impact</h2>
+          <p className="muted">
+            Every order supports an IFM student business. Shopping on campus keeps money within the
+            community and gives student sellers a real market for their work.
+          </p>
+          <Link className="text-link" to="/sell">Sell on SokoLink →</Link>
+        </article>
+        <article className="account-card" id="careers">
+          <ShieldCheck size={22} className="info-icon" />
+          <h2>Careers</h2>
+          <p className="muted">
+            SokoLink is built with students. If you want to help shape campus commerce, reach out to
+            the team and tell us what you would build.
+          </p>
+          <Link className="text-link" to="/contact">Get in touch →</Link>
+        </article>
       </div>
     </section>
   );
@@ -184,14 +203,59 @@ export function PoliciesPage() {
 }
 
 export function ContactPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('General question');
+  const [message, setMessage] = useState('');
+  const [sent, setSent] = useState(false);
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = [`From: ${name} <${email}>`, '', message].join('\n');
+    window.location.href =
+      'mailto:support@sokolink.local?subject=' +
+      encodeURIComponent(subject) +
+      '&body=' +
+      encodeURIComponent(body);
+    setSent(true);
+  }
+
   return (
     <section className="page-wrap info-page narrow-info">
       <p className="eyebrow">CONTACT</p>
       <h1>Talk to SokoLink</h1>
       <article className="account-card">
+        <h2>Send us a message</h2>
+        <form className="auth-form" onSubmit={submit}>
+          <label className="field">
+            <span>Your name</span>
+            <input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Email address</span>
+            <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>What is this about?</span>
+            <select value={subject} onChange={(event) => setSubject(event.target.value)}>
+              <option>General question</option>
+              <option>Order or payment support</option>
+              <option>Seller application</option>
+              <option>Report a listing</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Message</span>
+            <textarea rows={5} minLength={10} maxLength={2000} required value={message} onChange={(event) => setMessage(event.target.value)} />
+          </label>
+          <button className="button button-primary" type="submit">Open email draft</button>
+          {sent && <p className="muted small-note">Your email app should open with the message ready to send.</p>}
+        </form>
+      </article>
+      <article className="account-card">
         <h2>Support</h2>
-        <p className="muted">Email: support@sokolink.local</p>
-        <p className="muted">Phone: +255 700 000 000</p>
+        <p className="muted">Email: <a className="text-link" href="mailto:support@sokolink.local">support@sokolink.local</a></p>
+        <p className="muted">Phone: <a className="text-link" href="tel:+255700000000">+255 700 000 000</a></p>
         <p className="muted">Hours: Monday to Saturday, 08:00–18:00 EAT</p>
       </article>
       <article className="account-card">

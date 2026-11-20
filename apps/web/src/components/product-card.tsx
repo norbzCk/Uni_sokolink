@@ -3,14 +3,13 @@ import { Plus, ShoppingCart } from 'lucide-react';
 import { resolveMediaUrl } from '../api/client';
 import type { Product } from '../api/marketplace';
 import { useCart } from '../cart/cart-context';
-import { PriceTag, RatingStars, productRating } from './ui/primitives';
+import { PriceTag, RatingStars } from './ui/primitives';
 
 export function ProductCard({ product }: { product: Product }) {
   const cart = useCart();
   const image = resolveMediaUrl(product.images[0]?.url);
   const available = product.stock?.available ?? 0;
   const lowStock = available > 0 && available <= (product.stock?.lowStockThreshold ?? 3);
-  const rating = productRating(product.id);
 
   return (
     <article className="product-card">
@@ -25,7 +24,7 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="product-card-body">
         <p className="product-category">{product.category.name}</p>
         <h3><Link to={'/p/' + product.slug}>{product.name}</Link></h3>
-        <RatingStars rating={rating.rating} count={rating.count} />
+        <RatingStars />
         <p className="product-seller">
           {product.seller.name}
           <span className="verified"> ✓</span>

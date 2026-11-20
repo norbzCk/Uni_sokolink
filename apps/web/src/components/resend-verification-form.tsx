@@ -82,7 +82,7 @@ export function ResendVerificationForm({ initialEmail = '', onVerified }: Resend
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
         />
-        <button className="button button-primary full-width" type="submit" disabled={verifying}>
+        <button className="button button-primary full-width" type="submit" disabled={verifying || code.length !== 6}>
           {verifying ? 'Verifying…' : 'Verify email'}
         </button>
       </form>

@@ -83,8 +83,12 @@ export function SellerStorefrontPage() {
       setError('The logo must be 1.5 MB or smaller.');
       return;
     }
-    const logoDataUrl = await readFile(file);
-    setForm((current) => ({ ...current, logoDataUrl }));
+    try {
+      const logoDataUrl = await readFile(file);
+      setForm((current) => ({ ...current, logoDataUrl }));
+    } catch {
+      setError('The logo could not be read. Try another file.');
+    }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

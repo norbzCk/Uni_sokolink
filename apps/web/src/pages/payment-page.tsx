@@ -46,7 +46,7 @@ export function PaymentPage() {
       <div className="account-card payment-panel">
         <div className="payment-panel-head">
           <span className="payment-panel-icon">
-            <PaymentIcon kind={item.methodCode.includes('cash') ? 'CASH' : 'MOBILE_MONEY'} />
+            <PaymentIcon kind={item.kind} />
           </span>
           <div>
             <p className="eyebrow">PAYMENT</p>

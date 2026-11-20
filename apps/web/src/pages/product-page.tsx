@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   BadgeCheck,
@@ -18,10 +18,21 @@ import { apiRequest, resolveMediaUrl } from '../api/client';
 import type { Product } from '../api/marketplace';
 import { ErrorState, LoadingState } from '../components/async-state';
 import { ProductCard } from '../components/product-card';
-import { PriceTag, RatingStars, VerifiedSeller, productRating } from '../components/ui/primitives';
+import { PriceTag, RatingStars, VerifiedSeller } from '../components/ui/primitives';
 import { useCart } from '../cart/cart-context';
 import { formatTzs } from '../lib/format';
 import { useApi } from '../lib/use-api';
+
+const WISHLIST_KEY = 'sokolink.wishlist.v1';
+
+function readWishlist(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(WISHLIST_KEY) ?? '[]');
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 export function ProductPage() {
   const { slug = '' } = useParams();
@@ -36,6 +47,11 @@ export function ProductPage() {
     () => apiRequest<Product[]>('/catalogue/products/' + encodeURIComponent(slug) + '/related'),
     [slug],
   );
+  const productId = product.data?.id;
+
+  useEffect(() => {
+    if (productId) setSaved(readWishlist().includes(productId));
+  }, [productId]);
 
   if (product.loading) {
     return <section className="page-wrap"><LoadingState label="Loading product" /></section>;
@@ -54,11 +70,24 @@ export function ProductPage() {
   const lowStock = available > 0 && available <= (item.stock?.lowStockThreshold ?? 3);
   const images = item.images;
   const active = images[activeImage];
-  const rating = productRating(item.id);
 
-  function addToCart(goToCart = false) {
+  function addToCart(buyNow = false) {
     cart.add(item, quantity);
-    if (goToCart) navigate('/cart');
+    if (buyNow) navigate('/checkout');
+  }
+
+  function toggleSaved() {
+    const next = !saved;
+    try {
+      const updated = next
+        ? [...new Set([...readWishlist(), item.id])]
+        : readWishlist().filter((id) => id !== item.id);
+      localStorage.setItem(WISHLIST_KEY, JSON.stringify(updated));
+    } catch {
+      setSaved(false);
+      return;
+    }
+    setSaved(next);
   }
 
   async function share() {
@@ -116,9 +145,11 @@ export function ProductPage() {
           <p className="eyebrow">{item.category.name}</p>
           <h1>{item.name}</h1>
           <div className="product-meta-row">
-            <RatingStars rating={rating.rating} count={rating.count} />
+            <RatingStars />
             <span className="muted small-note">·</span>
-            <span className="text-link small-note">Visit the {item.seller.name} store</span>
+            <Link className="text-link small-note" to={'/search?sellerId=' + item.seller.id}>
+              Visit the {item.seller.name} store
+            </Link>
           </div>
           <p className="product-seller-line">
             Sold by <Link className="text-link" to={'/search?sellerId=' + item.seller.id}>{item.seller.name}</Link>{' '}
@@ -186,7 +217,7 @@ export function ProductPage() {
               className="share-button"
               type="button"
               aria-pressed={saved}
-              onClick={() => setSaved((value) => !value)}
+              onClick={toggleSaved}
             >
               <Heart size={15} fill={saved ? 'currentColor' : 'none'} />
               {saved ? 'Saved' : 'Add to wishlist'}

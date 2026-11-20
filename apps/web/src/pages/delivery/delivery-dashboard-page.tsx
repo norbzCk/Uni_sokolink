@@ -4,15 +4,15 @@ import { Bike, Clock, MapPin, PackageCheck, Wallet } from 'lucide-react';
 const sections: Record<string, { title: string; copy: string }> = {
   '/delivery/assignments': {
     title: 'Assignments',
-    copy: 'Accepted delivery jobs will appear here once dispatch is connected to the delivery partner network.',
+    copy: 'Delivery dispatch is not connected to the marketplace yet, so there are no assignments to accept.',
   },
   '/delivery/coverage': {
     title: 'Coverage',
-    copy: 'Set the campus and Dar es Salaam areas you can cover. Dispatch will match nearby orders to you.',
+    copy: 'Coverage preferences will be available when delivery dispatch is connected. SokoLink currently uses campus pickup and seller-arranged delivery.',
   },
   '/delivery/earnings': {
     title: 'Earnings',
-    copy: 'Completed delivery fees and payout summaries will appear here after your first delivered order.',
+    copy: 'Delivery payouts will appear here once partner delivery is available.',
   },
 };
 
@@ -33,7 +33,11 @@ export function DeliveryDashboardPage() {
         </div>
         <div className="empty-panel">
           <h2>Nothing here yet</h2>
-          <p className="muted">This workspace is ready for delivery dispatch integration.</p>
+          <p className="muted">
+            Partner delivery is not part of the current marketplace. Contact support if you were
+            expecting access to delivery jobs.
+          </p>
+          <Link className="button button-outline" to="/contact">Contact support</Link>
         </div>
       </div>
     );
@@ -45,60 +49,62 @@ export function DeliveryDashboardPage() {
         <div>
           <p className="eyebrow">DELIVERY PARTNER</p>
           <h1>Delivery overview</h1>
-          <p className="muted">Track assignments, coverage and earnings in one place.</p>
+          <p className="muted">Partner delivery is not available in the current marketplace.</p>
         </div>
         <span className="badge badge-warning">Setup pending</span>
       </div>
       <div className="stat-grid">
         <article className="stat-card">
           <span>Active assignments</span>
-          <strong>0</strong>
-          <span className="muted small-note">Awaiting dispatch connection</span>
+          <strong>—</strong>
+          <span className="muted small-note">Dispatch not connected</span>
         </article>
         <article className="stat-card">
           <span>Delivered today</span>
-          <strong>0</strong>
-          <span className="muted small-note">No completed runs yet</span>
+          <strong>—</strong>
+          <span className="muted small-note">No partner runs recorded</span>
         </article>
         <article className="stat-card">
           <span>Coverage area</span>
-          <strong>Dar</strong>
-          <span className="muted small-note">Campus and nearby areas</span>
+          <strong>—</strong>
+          <span className="muted small-note">Coverage setup pending</span>
         </article>
         <article className="stat-card">
           <span>Earnings</span>
-          <strong>TSh 0</strong>
-          <span className="muted small-note">Payouts after delivery</span>
+          <strong>—</strong>
+          <span className="muted small-note">Payouts not available</span>
         </article>
       </div>
       <div className="info-grid">
         <article className="account-card">
           <Bike size={22} className="info-icon" />
-          <h2>Accept delivery jobs</h2>
+          <h2>Delivery jobs</h2>
           <p className="muted">
-            Delivery dispatch is not connected to the marketplace API yet. Your profile and coverage
-            preferences are ready.
+            Orders currently use campus pickup or seller-arranged delivery. Partner dispatch is not
+            connected to the marketplace API yet.
           </p>
+          <Link className="text-link" to="/delivery/assignments">View assignments →</Link>
         </article>
         <article className="account-card">
           <MapPin size={22} className="info-icon" />
-          <h2>Set your coverage</h2>
-          <p className="muted">Choose the areas you can reach between classes and around campus.</p>
+          <h2>Coverage</h2>
+          <p className="muted">Coverage settings will open when dispatch is available.</p>
           <Link className="text-link" to="/delivery/coverage">Manage coverage →</Link>
         </article>
         <article className="account-card">
           <Wallet size={22} className="info-icon" />
-          <h2>Get paid</h2>
-          <p className="muted">Delivery fees are tracked per completed order and shown in earnings.</p>
+          <h2>Earnings</h2>
+          <p className="muted">Delivery fees and payouts will be tracked per completed order.</p>
+          <Link className="text-link" to="/delivery/earnings">View earnings →</Link>
         </article>
         <article className="account-card">
           <PackageCheck size={22} className="info-icon" />
           <h2>Proof of delivery</h2>
-          <p className="muted">Mark orders delivered and add a handoff note for the buyer and seller.</p>
+          <p className="muted">Handoff confirmations will be available with dispatch integration.</p>
         </article>
       </div>
       <p className="muted small-note">
-        <Clock size={13} /> This workspace is a UI shell until delivery endpoints are added.
+        <Clock size={13} /> Questions? <Link className="text-link" to="/contact">Contact SokoLink support</Link>.
       </p>
     </div>
   );

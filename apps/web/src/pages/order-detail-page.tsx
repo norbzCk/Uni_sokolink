@@ -23,12 +23,16 @@ export function OrderDetailPage() {
   const justPlaced = Boolean((location.state as { placed?: boolean } | null)?.placed);
   const order = useApi(() => authRequest<Order>('/orders/' + encodeURIComponent(id)), [id]);
   const [payment, setPayment] = useState<Payment | null>(null);
+  const [paymentError, setPaymentError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     authRequest<Payment>('/payment/payments/' + encodeURIComponent(id))
-      .then(setPayment)
-      .catch(() => undefined);
+      .then((result) => {
+        setPayment(result);
+        setPaymentError(false);
+      })
+      .catch(() => setPaymentError(true));
   }, [authRequest, id]);
 
   if (order.loading) return <section className="page-wrap"><LoadingState label="Loading order" /></section>;
@@ -148,6 +152,7 @@ export function OrderDetailPage() {
             <p className="muted">
               {payment?.instructions ?? 'SokoLink records this payment and settles with the seller after fulfilment.'}
             </p>
+            {paymentError && <p className="field-error">Payment details could not be loaded.</p>}
             <div className="summary-row"><span>Status</span><span className={'badge ' + statusTone(current.paymentStatus)}>{current.paymentStatus}</span></div>
             <div className="summary-row"><span>Subtotal</span><span>{formatTzs(current.subtotalTzs)}</span></div>
             <div className="summary-row"><span>Delivery fee</span><span>{formatTzs(current.deliveryFeeTzs)}</span></div>

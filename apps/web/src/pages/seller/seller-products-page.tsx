@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ApiError, resolveMediaUrl } from '../../api/client';
 import type { Product } from '../../api/marketplace';
 import { useAuth } from '../../auth/auth-context';
@@ -10,7 +10,9 @@ import { useApi } from '../../lib/use-api';
 
 export function SellerProductsPage() {
   const { authRequest } = useAuth();
+  const location = useLocation();
   const products = useApi(() => authRequest<{ items: Product[] }>('/catalogue/seller/products'), []);
+  const [message] = useState(() => (location.state as { message?: string } | null)?.message ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export function SellerProductsPage() {
         <Link className="button button-primary" to="/seller/products/new">Add product</Link>
       </div>
 
+      {message && <Alert tone="success">{message}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
       {products.loading ? (
         <LoadingState label="Loading products" />

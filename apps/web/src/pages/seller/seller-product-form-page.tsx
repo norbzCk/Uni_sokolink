@@ -83,6 +83,7 @@ export function SellerProductFormPage() {
     event.target.value = '';
     setError(null);
     const accepted: string[] = [];
+    const currentCount = editing ? (product?.images.length ?? 0) : images.length;
     for (const file of files) {
       if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
         setError('Upload JPEG, PNG or WebP images only.');
@@ -92,7 +93,15 @@ export function SellerProductFormPage() {
         setError('Each image must be 2 MB or smaller.');
         continue;
       }
-      accepted.push(await readFile(file));
+      if (currentCount + accepted.length >= 6) {
+        setError('A product can have at most 6 images.');
+        break;
+      }
+      try {
+        accepted.push(await readFile(file));
+      } catch {
+        setError('The image could not be read. Try another file.');
+      }
     }
     if (editing && product) {
       for (const dataUrl of accepted) {
@@ -248,7 +257,10 @@ export function SellerProductFormPage() {
               </label>
             )}
           </div>
-          <span className="field-hint">JPEG, PNG or WebP up to 2 MB each. The first image is used on product cards.</span>
+          <span className="field-hint">
+            JPEG, PNG or WebP up to 2 MB each. The first image is used on product cards.
+            {editing ? ' Image changes are saved as soon as you add or remove them.' : ''}
+          </span>
         </div>
 
         <div className="inline-actions">

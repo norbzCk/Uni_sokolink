@@ -15,6 +15,33 @@ type StockRow = {
   unit: string;
 };
 
+type StockMovementRow = {
+  productId: string;
+  type: 'OPENING' | 'ADJUSTMENT' | 'RESERVATION' | 'RELEASE' | 'FULFILMENT';
+  onHandDelta: number;
+  reservedDelta: number;
+  createdAt: Date;
+};
+
+type TrendPoint = {
+  date: string;
+  label: string;
+  stockIn: number;
+  stockOut: number;
+  reserved: number;
+  released: number;
+  net: number;
+};
+
+type TopMovedProduct = {
+  productId: string;
+  movements: number;
+  stockIn: number;
+  stockOut: number;
+  reserved: number;
+  released: number;
+};
+
 @Injectable()
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -212,6 +239,132 @@ export class InventoryService {
     return items.map((item) => this.present(item));
   }
 
+  async analytics(sellerId: string, days = 30) {
+    const windowDays = [7, 30, 90].includes(days) ? days : 30;
+    const now = new Date();
+    const from = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - windowDays + 1),
+    );
+    const [items, movements] = await Promise.all([
+      this.prisma.stockItem.findMany({ where: { sellerId } }),
+      this.prisma.stockMovement.findMany({
+        where: { sellerId, createdAt: { gte: from } },
+        select: {
+          productId: true,
+          type: true,
+          onHandDelta: true,
+          reservedDelta: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }) as Promise<StockMovementRow[]>,
+    ]);
+
+    const trend = new Map<string, TrendPoint>();
+    for (let offset = 0; offset < windowDays; offset += 1) {
+      const date = new Date(from);
+      date.setUTCDate(from.getUTCDate() + offset);
+      const key = this.isoDay(date);
+      trend.set(key, {
+        date: key,
+        label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+        stockIn: 0,
+        stockOut: 0,
+        reserved: 0,
+        released: 0,
+        net: 0,
+      });
+    }
+
+    const top = new Map<string, TopMovedProduct>();
+    const totals = { stockIn: 0, stockOut: 0, reservations: 0, releases: 0 };
+
+    for (const movement of movements) {
+      const point = trend.get(this.isoDay(movement.createdAt));
+      const stockIn =
+        movement.type === 'OPENING' || movement.type === 'ADJUSTMENT'
+          ? Math.max(movement.onHandDelta, 0)
+          : 0;
+      const stockOut =
+        movement.type === 'FULFILMENT' || movement.type === 'ADJUSTMENT'
+          ? Math.max(-movement.onHandDelta, 0)
+          : 0;
+      const reserved =
+        movement.type === 'RESERVATION' ? Math.max(movement.reservedDelta, 0) : 0;
+      const released =
+        movement.type === 'RELEASE' ? Math.max(-movement.reservedDelta, 0) : 0;
+
+      if (point) {
+        point.stockIn += stockIn;
+        point.stockOut += stockOut;
+        point.reserved += reserved;
+        point.released += released;
+        point.net = point.stockIn - point.stockOut;
+      }
+      totals.stockIn += stockIn;
+      totals.stockOut += stockOut;
+      totals.reservations += reserved;
+      totals.releases += released;
+
+      const current =
+        top.get(movement.productId) ??
+        {
+          productId: movement.productId,
+          movements: 0,
+          stockIn: 0,
+          stockOut: 0,
+          reserved: 0,
+          released: 0,
+        };
+      current.movements += 1;
+      current.stockIn += stockIn;
+      current.stockOut += stockOut;
+      current.reserved += reserved;
+      current.released += released;
+      top.set(movement.productId, current);
+    }
+
+    const onHand = items.reduce((total, item) => total + item.onHand, 0);
+    const reservedItems = items.reduce((total, item) => total + item.reserved, 0);
+    const available = items.reduce(
+      (total, item) => total + Math.max(item.onHand - item.reserved, 0),
+      0,
+    );
+    const outOfStockProducts = items.filter((item) => item.onHand - item.reserved <= 0).length;
+    const lowStockProducts = items.filter(
+      (item) => item.onHand - item.reserved > 0 && item.onHand - item.reserved <= item.lowStockThreshold,
+    ).length;
+    const topMoved = [...top.values()]
+      .sort(
+        (left, right) =>
+          right.stockOut - left.stockOut ||
+          right.stockIn - left.stockIn ||
+          right.movements - left.movements,
+      )
+      .slice(0, 5);
+
+    return {
+      range: { days: windowDays, from: from.toISOString(), to: now.toISOString() },
+      summary: {
+        products: items.length,
+        onHand,
+        reserved: reservedItems,
+        available,
+        lowStockProducts,
+        outOfStockProducts,
+        healthyProducts: items.length - lowStockProducts - outOfStockProducts,
+        movementCount: movements.length,
+        stockIn: totals.stockIn,
+        stockOut: totals.stockOut,
+        reservations: totals.reservations,
+        releases: totals.releases,
+        netOnHand: totals.stockIn - totals.stockOut,
+      },
+      trend: [...trend.values()],
+      topMoved,
+    };
+  }
+
   async movements(sellerId: string, productId: string) {
     const item = await this.prisma.stockItem.findFirst({ where: { productId, sellerId } });
     if (!item) {
@@ -294,6 +447,10 @@ export class InventoryService {
       },
     });
     return this.present(updated);
+  }
+
+  private isoDay(date: Date) {
+    return date.toISOString().slice(0, 10);
   }
 
   private mergeItems(items: { productId: string; quantity: number }[]) {

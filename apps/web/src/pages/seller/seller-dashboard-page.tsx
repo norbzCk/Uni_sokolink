@@ -1,7 +1,13 @@
 import { Link } from 'react-router-dom';
-import type { CatalogueSellerStats, MySellerStatus, SellerStats, Storefront } from '../../api/marketplace';
+import type {
+  CatalogueSellerStats,
+  InventoryAnalytics,
+  MySellerStatus,
+  SellerStats,
+  Storefront,
+} from '../../api/marketplace';
 import { useAuth } from '../../auth/auth-context';
-import { LoadingState } from '../../components/async-state';
+import { ErrorState, LoadingState } from '../../components/async-state';
 import { formatTzs } from '../../lib/format';
 import { useApi } from '../../lib/use-api';
 
@@ -11,9 +17,25 @@ export function SellerDashboardPage() {
   const orders = useApi(() => authRequest<SellerStats>('/orders/seller/stats'), []);
   const profile = useApi(() => authRequest<{ storefront: Storefront | null }>('/seller/profile'), []);
   const status = useApi(() => authRequest<MySellerStatus>('/seller/applications/me'), []);
+  const inventory = useApi(
+    () => authRequest<InventoryAnalytics>('/inventory/seller/analytics?days=30'),
+    [],
+  );
 
-  if (catalogue.loading || orders.loading || profile.loading || status.loading) {
+  if (catalogue.loading || orders.loading || profile.loading || status.loading || inventory.loading) {
     return <LoadingState label="Loading seller overview" />;
+  }
+
+  const loadError = catalogue.error ?? orders.error ?? profile.error ?? status.error ?? inventory.error;
+  if (loadError) {
+    return (
+      <div className="workspace-entry">
+        <ErrorState message={loadError} />
+        <button className="button button-outline" type="button" onClick={() => window.location.reload()}>
+          Try again
+        </button>
+      </div>
+    );
   }
 
   const storefront = profile.data?.storefront ?? null;
@@ -51,9 +73,11 @@ export function SellerDashboardPage() {
           <Link className="text-link" to="/seller/products">Manage products</Link>
         </article>
         <article className="stat-card">
-          <span>Awaiting review</span>
-          <strong>{catalogue.data?.PENDING ?? 0}</strong>
-          <span className="muted">Submitted for moderation</span>
+          <span>Stock alerts</span>
+          <strong>
+            {(inventory.data?.summary.lowStockProducts ?? 0) + (inventory.data?.summary.outOfStockProducts ?? 0)}
+          </strong>
+          <Link className="text-link" to="/seller/inventory">Review inventory</Link>
         </article>
       </div>
 

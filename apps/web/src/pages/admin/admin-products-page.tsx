@@ -107,7 +107,15 @@ export function AdminProductsPage() {
                   <button className="button button-primary button-small" type="button" disabled={busy === product.id} onClick={() => approve(product)}>
                     Approve listing
                   </button>
-                  <button className="button button-outline button-small" type="button" onClick={() => setRejecting(product.id)}>
+                  <button
+                    className="button button-outline button-small"
+                    type="button"
+                    onClick={() => {
+                      setReason('');
+                      setError(null);
+                      setRejecting(product.id);
+                    }}
+                  >
                     Reject
                   </button>
                 </div>
